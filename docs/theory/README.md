@@ -1,11 +1,13 @@
-# The theory of Nexus Engine — a reading path
+# The theory of Nexus — a reading path
 
-> **Naming:** **Nexus Engine** (Tier 2, this repo) — *Forge* is an alias.
-> **Link-editor** (Tier 3) — *Crucible* is an alias.
+> **Official name:** **Nexus** (repository: `Nexus-engine`, Tier 2). *Forge* = runtime alias.
+> **Crucible** (Tier 3 editor) — docs in [`../crucible/README.md`](../crucible/README.md).
 
-This folder explains **why and how** the hybrid engine is shaped: retained
-`SceneNode` hierarchy + optional ECS bridge, update loop, performance trade-offs,
-and Tier 1 ↔ Tier 2 boundaries.
+This folder explains **why and how** the hybrid engine is shaped: retained `SceneNode`
+hierarchy, **Flecs adapter** (native Zig ECS only if needed later), opinionated immediate-mode
+tool UI, data-oriented localization direction, update loop, and Tier boundaries.
+
+**Example-driven:** read each chapter as the matching version lands ([`../ROADMAP.md`](../ROADMAP.md)).
 
 **Prerequisite:** zGameLib basics — open a window, clear color ([zGameLib theory](https://github.com/SETA1609/zGameLib/tree/main/docs/theory)).
 
@@ -26,7 +28,7 @@ and Tier 1 ↔ Tier 2 boundaries.
 
 **Golden rule (from zGameLib):** raw-first / opt-in. Drop to `zgame.vk` when a server blocks you.
 
-**Nexus rule:** hybrid-by-default — nodes for authoring; ECS for heat behind `EcsBridge`.
+**Nexus rules:** hybrid-by-default (nodes + optional ECS); immediate mode for tools; semi-retained UI only when necessary; Flecs adapter first.
 
 ---
 

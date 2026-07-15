@@ -8,8 +8,9 @@ without coupling to a specific ECS library.*
 
 File 01 established the **node tree** as Nexus Engine's authoring model. This chapter
 covers the **optional performance plane**: entities, components, and systems —
-starting with a **thin Flecs adapter**, with a documented path to pure-Zig ECS
-later.
+starting with a **thin Flecs adapter** (the **default and only planned ECS backend**
+through v1.0). A native Zig ECS is **not** on the critical path — evaluate post-1.0 only if
+Flecs cost or integration limits demand it.
 
 ---
 

@@ -1,11 +1,24 @@
-# Nexus Engine Reference
-## Hybrid Game Engine Layer on zGameLib
+# Nexus Reference
+## Hybrid Game Engine on zGameLib (Tier 2)
 
+**Official name:** **Nexus** (repository: `Nexus-engine`).  
 **Version:** 2026-07-15  
 **Status:** Living reference — API-first contract; implementation tracks [`ROADMAP.md`](ROADMAP.md)  
 **Release line:** `0.0.x` (bootstrap) → `0.1.0` (`clear-color`) → … → `1.0.0` (alpha)  
-**Aliases:** *Forge* (Nexus Engine); *Crucible* (Link-editor). Docs use canonical names.  
-**Philosophy:** Retained SceneNodes for usability and editor friendliness; optional ECS for hot systems. Raw zGameLib access always reachable beneath.
+**Aliases:** *Forge* (runtime); *Crucible* (editor, Tier 3).  
+**Philosophy:** SceneNodes for authoring; Flecs-backed ECS for hot paths; opinionated immediate-mode tool UI; example-driven releases. Raw `zgame.*` always reachable.
+
+### Finalized architecture decisions
+
+| Area | Decision |
+|------|----------|
+| **ECS** | **Flecs adapter** first (`nexus.ecs.flecs`); evaluate native Zig ECS later only if integration cost or performance demands |
+| **UI** | **Immediate mode** for tools (Crucible ImGui, optional debug); **semi-retained** scene UI only when necessary; in-game draw via zGameLib **2D batcher** |
+| **ImGui in zGameLib** | **Optional**, implemented **toward the end** of Tier 1 roadmap — not a core dependency |
+| **Examples** | Each version ships **≥1 proving example** (`zig build <name>`) — see [`examples/ladder.md`](examples/ladder.md) |
+| **Localization** | Nexus-only; data-oriented; `.po` → build-time JSON/binary; runtime API **detailed design TBD** (v1.2.0) |
+| **Crucible** | Docs in [`crucible/README.md`](crucible/README.md); separate repo **may** spin out later |
+| **zGameLib** | Minimal core; optional modules late; **fonts after ImGui** |
 
 ### Implementation status (July 2026)
 
@@ -18,21 +31,24 @@
 | `InputMap` / `DisplayServer` | Specified §4.3 | Not implemented | **0.5.0** |
 | `PhysicsServer` | Specified §4.3 | Not implemented | **0.9.0** |
 | `EditorHost` | Specified §9 | Not implemented | **1.0.0** freeze |
-| `zgame.zimgui` (via `-DimGui`) | Specified §13 | Not implemented | **0.8.0** optional overlay; **1.1.0+** Crucible |
-| `LocalizationSystem` / `tr()` | Specified §14 | Not implemented | **1.2.0** |
+| `zgame.zimgui` (via `-DimGui`) | Specified §13 | Not implemented | **1.1.0+** Crucible (zGameLib ships `zimgui` late) |
+| `LocalizationSystem` | Specified §14 (high-level) | Not implemented | **1.2.0** — API TBD |
 
 **Examples:** design docs in [`docs/examples/`](examples/); source lands per version column.
 
 ---
 
-## 1. What is Nexus Engine?
+## 1. What is Nexus?
 
-Nexus Engine is the **Tier 2 game engine** in our clean-room modernization of Redot. It sits between:
+**Nexus** is the **Tier 2 game engine** in our clean-room modernization of Redot. It sits between:
 
-- **Tier 1 — zGameLib** (foundation: SDL3, Vulkan, audio, asset decode, math)
-- **Tier 3 — Link-editor** (detachable editor: Dear ImGui, gizmos, inspectors)
+- **Tier 1 — zGameLib** (lean foundation: SDL3, Vulkan, optional modules late)
+- **Tier 3 — Crucible** (detachable editor: immediate-mode Dear ImGui; docs in this repo for now)
 
-Nexus Engine is **not** a duplicate of zGameLib. It is where **game architecture** lives: scene representation, servers, resources, scripting hooks, and the update loop that turns a window into a playable world.
+Nexus is **not** a duplicate of zGameLib. It is where **game architecture** lives: scene representation, Flecs-backed ECS bridge, servers, resources, and the update loop that turns a window into a playable world.
+
+**Development model:** incremental, **example-driven** — every minor release adds a runnable
+example that proves the new capability (see [`ROADMAP.md`](ROADMAP.md)).
 
 We study Redot/Godot **behavior and public APIs**, then re-implement only what is actually used — in idiomatic Zig, with `zig build`, Vulkan-only rendering, and no GDScript.
 
@@ -47,7 +63,7 @@ We study Redot/Godot **behavior and public APIs**, then re-implement only what i
 └────────────────────────────┬─────────────────────────────────────┘
                              │ EditorHost API
 ┌────────────────────────────▼─────────────────────────────────────┐
-│  TIER 2: NEXUS ENGINE (Engine — this project)                           │
+│  TIER 2: NEXUS (this project — Nexus-engine repo)                  │
 │    • Hybrid SceneNode tree + optional ECS bridge                 │
 │    • Servers: render, audio, physics, navigation, text           │
 │    • Resources, scene format, project settings, scripting        │
@@ -61,7 +77,7 @@ We study Redot/Godot **behavior and public APIs**, then re-implement only what i
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-**Key insight:** Nexus Engine is **just another consumer** of zGameLib. You can always drop through Nexus Engine into `zgame.platform`, `zgame.vk`, `zgame.Gpu`, and the rest. The engine never hides the metal.
+**Key insight:** Nexus is **just another consumer** of zGameLib. You can always drop through into `zgame.platform`, `zgame.vk`, `zgame.Gpu`, and the rest. The engine never hides the metal.
 
 ---
 
@@ -107,6 +123,9 @@ We study Redot/Godot **behavior and public APIs**, then re-implement only what i
 | **Servers over monoliths** | Rendering, audio, physics are independent modules with dummy backends for headless/tests |
 | **Explicit over implicit** | Vulkan-only graphics path; no hidden GL fallback |
 | **Hybrid by default** | SceneNodes are the authoring model; ECS is opt-in per subtree or component |
+| **Flecs first** | ECS starts as a thin adapter; native Zig ECS is a later evaluation, not v1 default |
+| **Immediate-mode tools** | Crucible and debug UI use ImGui-style immediate mode; game UI uses batcher draw |
+| **Example-driven** | Each version ships docs + at least one proving example |
 | **Clean-room** | Redot informs *behavior*, not code; we port only proven-in-practice features |
 
 ---
@@ -242,7 +261,7 @@ const SceneNode = struct {
 - Standard components: `Transform`, `Velocity`, `ColliderHandle`, `DrawInstance`.
 - Systems registered per **phase** (physics, render gather, animation sample).
 
-**Phase 2 — evaluate pure-Zig ECS** when Flecs integration cost exceeds maintenance or we need comptime component layouts.
+**Phase 2 (post-1.0, only if needed) — evaluate native Zig ECS** when Flecs integration cost exceeds maintenance, ABI friction hurts ports, or comptime layouts become necessary. Not planned for initial hybrid releases.
 
 **When to use ECS vs stay on nodes:**
 
@@ -301,7 +320,8 @@ See [`theory/03-systems-and-update-loop.md`](theory/03-systems-and-update-loop.m
 - Image decode, glTF parse, miniaudio playback
 - Math primitives (`Vec3`, `Mat4`, `Quat`)
 - zstd, ENet packets
-- **Dear ImGui** (`zimgui`) — optional via `-DimGui`; Vulkan/SDL3 backends only
+- **Dear ImGui** (`zimgui`) — optional via `-DimGui`; **late** Tier 1 module (after 2D batcher)
+- **Fonts** (`zfont`) — optional; **after** `zimgui` in Tier 1 roadmap
 
 **Belongs in Nexus Engine (Tier 2):**
 
@@ -312,7 +332,7 @@ See [`theory/03-systems-and-update-loop.md`](theory/03-systems-and-update-loop.m
 - Scripting host, project settings
 - **`LocalizationSystem`** — data-oriented locale tables; `lookup()` / `tr()`; loads compiled JSON from `res://locale/`
 - **`nexus-locale` build step** — `.po` (translator source) → JSON at export time
-- Retained in-game UI (`Control` nodes, future) — serialized, localized gameplay UI
+- Semi-retained in-game UI (`Control` nodes, future) — only where scene serialization/layout requires it; drawn via batcher
 
 **Belongs in Crucible (Tier 3) only:**
 
@@ -431,7 +451,7 @@ const zgame = @import("zgame");
 
 ---
 
-**This is the authoritative reference for Nexus Engine (Tier 2).**
+**This is the authoritative reference for Nexus (Tier 2).**
 
 Use it when building game systems, designing Link-editor integration, or deciding whether a feature belongs in zGameLib vs the engine.
 
@@ -441,9 +461,10 @@ Everything explicit. zGameLib always reachable. SceneNodes for humans; ECS for h
 
 ## 13. Immediate Mode UI Strategy
 
-Nexus follows the **Casey Muratori / explicit-engine split**: immediate-mode UI for **tools**,
-custom batched UI for **games**. Dear ImGui is the tool-layer choice — not the in-game widget
-stack.
+Nexus takes an **opinionated immediate-mode** approach (Handmade Hero / Casey Muratori): **use
+immediate mode when you need UI** — especially tools. Use **semi-retained** scene UI only when
+serialization, editor inspection, or stable layout truly requires it. Dear ImGui is the tool-layer
+choice for Crucible; **not** the in-game widget stack.
 
 Full design: [`theory/06-ui-and-localization.md`](theory/06-ui-and-localization.md) ·
 [zGameLib `imgui.md`](../zGameLib/docs/imgui.md).
@@ -460,11 +481,11 @@ Debug (T2/opt)    ImGui OR debug draw           debug-ui example (v0.8.0)
 
 | Layer | ImGui | In-game UI |
 |-------|-------|------------|
-| zGameLib | Optional `-DimGui` | **2D batcher** (sprites, text, nine-slice — planned) |
-| Nexus Engine | Optional `debug-ui` overlay | `RenderingServer` + retained `Control` nodes |
-| Crucible | **Required** | Edits scene data only — does not draw game HUD |
+| zGameLib | Optional `-DimGui` (**late** roadmap) | **2D batcher** first (sprites, text — planned) |
+| Nexus | `debug-ui` overlay (debug draw first) | `RenderingServer` + semi-retained `Control` nodes |
+| Crucible | **Required** (when editor ships) | Edits scene data only — does not draw game HUD |
 
-**Why optional in zGameLib?** Tier 1 stays lean; shipped games and headless CI omit ImGui entirely.
+**Why optional and late in zGameLib?** Tier 1 stays minimal; 2D batcher and core adapters ship first. ImGui lands when Crucible needs it (~Nexus v1.1.0+).
 
 **Why required in Crucible?** The editor is immediate-mode tool UI — rebuilding panels each frame
 is the right model (Handmade Hero / explicit tooling practice).
@@ -511,13 +532,14 @@ ctx.rendering.drawText2d(batch, label, .{ .x = 16, .y = 16 });
 
 ---
 
-## 14. Data-Oriented LocalizationSystem
+## 14. Localization (high level — data-oriented)
 
-Localization lives in **Nexus Engine (Tier 2)**, not zGameLib. Strings are **compiled data**
-that systems query — not a heavyweight runtime i18n library.
+Localization lives in **Nexus (Tier 2)**, not zGameLib. Direction: **data-oriented** compiled
+tables that gameplay systems query — not ICU, not i18next, not runtime `.po` parsing.
 
-Ship target: **v1.2.0**. Godot's `TranslationServer` maps to our **`LocalizationSystem`**;
-`tr()` remains familiar sugar over `lookup()`.
+Ship target: **v1.2.0**. **Detailed API** (`LocalizationSystem` schema, `tr()` helpers, ECS
+integration) will be specified during implementation — this section records **decisions**, not
+final signatures.
 
 ### Pipeline
 
@@ -542,26 +564,19 @@ concepts. zGameLib keeps UTF-8 I/O only.
 **Why `.po` → JSON?** PO for CAT tooling; JSON (or binary) for mmap-friendly O(1) cold start.
 No gettext parser, ICU, or i18next in the player.
 
-### Data-oriented API
+### Direction (API TBD)
+
+- **Query model** — systems call into `LocalizationSystem` (or read pre-resolved string handles).
+- **Godot familiarity** — expect `tr()`-style helpers; exact names frozen at v1.2.0.
+- **ECS** — resolve strings on locale change, not every frame (data-oriented).
+- **Crucible** — `.po` editing workflow; compile step stays in Nexus build/export.
+
+Illustrative direction only:
 
 ```zig
-pub const LocalizationSystem = struct {
-    active: LocaleId,
-    fallbacks: []LocaleId,
-    loaded: /* LocaleId → *CompiledLocaleData */,
-
-    pub fn lookup(self: *const LocalizationSystem, req: LookupRequest) ?[]const u8,
-    pub fn lookupPlural(self: *const LocalizationSystem, key: []const u8, n: i32) ?[]const u8,
-    pub fn setLocale(self: *LocalizationSystem, id: LocaleId) !void,
-};
-
-// Godot-familiar sugar
-pub fn tr(ctx: *NexusContext, key: []const u8) []const u8 {
-    return ctx.localization.lookup(.{ .key = key }) orelse key;
-}
+// Pseudocode — shapes may change before v1.2.0 ships
+const text = ctx.localization.resolve("UI_PLAY") orelse "UI_PLAY";
 ```
-
-ECS systems store `StringKey` components; a resolve pass runs on locale change, not every frame.
 
 ### vs other engines (localization)
 

@@ -1,11 +1,11 @@
 # 06 — UI & localization: immediate-mode tools, data-oriented strings
 
-*Where Dear ImGui belongs (editor/debug only), how in-game UI uses the 2D batcher, and why
-localization is a queryable data system in Nexus Engine — not a foundation library.*
+*Opinionated immediate-mode UI for tools; semi-retained scene UI only when necessary;
+in-game draw on the 2D batcher; localization as compiled data in Nexus — not zGameLib.*
 
-> **Release alignment:** optional ImGui debug overlay **v0.8.0**; Crucible ImGui **v1.1.0+**;
-> `LocalizationSystem` **v1.2.0**. Prerequisite: [05](05-resource-and-asset-management.md);
-> zGameLib [ImGui guide](../../zGameLib/docs/imgui.md) and 2D batcher (Q3–Q4 2026).
+> **Release alignment:** debug overlay **v0.8.0** (debug draw; ImGui when zGameLib `zimgui` lands late);
+> Crucible **v1.1.0+**; localization direction **v1.2.0** (detailed API TBD at implementation).
+> Crucible docs: [`../crucible/README.md`](../crucible/README.md).
 
 ---
 
@@ -14,8 +14,8 @@ localization is a queryable data system in Nexus Engine — not a foundation lib
 | Lane | UI model | Technology | Tier |
 |------|----------|------------|------|
 | **Editor** | Immediate mode (Casey Muratori style) | Dear ImGui via `zgame.zimgui` | Crucible (Tier 3) — **required** |
-| **In-game** | Retained / custom draw | zGameLib **2D batcher** + `RenderingServer` | Nexus (Tier 2) — **no ImGui** |
-| **Debug** | Immediate mode (optional) | Dear ImGui or lightweight debug draw | Nexus overlay / zGameLib `-DimGui` |
+| **In-game** | Custom batched draw (semi-retained `Control` only if needed) | zGameLib **2D batcher** | Nexus — **no ImGui** |
+| **Debug** | Immediate mode when useful | Debug draw first; ImGui when `zimgui` ships (late Tier 1) | Nexus `debug-ui` |
 
 | Problem | Tier | Rationale |
 |---------|------|-----------|
@@ -33,9 +33,9 @@ localization is a queryable data system in Nexus Engine — not a foundation lib
 
 **Golden rules**
 
-1. **Immediate mode for tools, retained/custom for games** — do not ship ImGui in player HUDs.
-2. **Pay for what you use** — default `zig build` does not link Dear ImGui.
-3. **Localization is data, not foundation I/O** — zGameLib has no `tr()`, no PO parser at runtime.
+1. **Opinionated immediate mode** — prefer rebuilding tool UI each frame; semi-retained scene UI only when serialization/layout requires it.
+2. **ImGui is late in zGameLib** — optional module toward end of Tier 1 roadmap; Crucible waits for it.
+3. **Localization is data in Nexus** — `.po` → compile → query; detailed API TBD at v1.2.0.
 
 ---
 
@@ -170,10 +170,11 @@ i18next JSON; we do not author in it.
 **Why not ICU?** Collation/calendars/break iterators are unrelated to game `tr()` lookup. Add
 slim formatters in Nexus only when a server needs them.
 
-### Data-oriented `LocalizationSystem`
+### Data-oriented direction (API TBD at v1.2.0)
 
 Localization is **state + tables**, not a deep object hierarchy. Gameplay systems, ECS phases,
-and `Control` layout code **query** compiled data:
+and `Control` layout code will **query** compiled data. Exact types and function names are
+**not frozen** in documentation — they will be specified when v1.2.0 implementation starts.
 
 ```ascii
 NexusContext
@@ -188,50 +189,16 @@ CompiledLocaleData (resource)
   └── entries: flat array { key, ctxt?, singular, plurals[] }
 ```
 
+**Design intent (illustrative):**
+
 ```zig
-// Pseudocode — data-oriented API (Nexus, not zGameLib)
-pub const LocaleId = u16;
-pub const StringKey = u32; // optional: intern keys at compile time
-
-pub const CompiledLocaleData = struct {
-    locale: []const u8,
-    plural_rule: PluralRule,
-    entries: []Entry, // sorted or hashed for lookup
-};
-
-pub const LocalizationSystem = struct {
-    active: LocaleId,
-    fallbacks: []LocaleId,
-    loaded: std.AutoArrayHashMap(LocaleId, *CompiledLocaleData),
-
-    /// Primary query — systems call this
-    pub fn lookup(self: *const LocalizationSystem, req: LookupRequest) ?[]const u8 {
-        return self.lookupInLocale(self.active, req)
-            orelse self.walkFallbacks(req);
-    }
-
-    pub fn lookupPlural(self: *const LocalizationSystem, key: []const u8, n: i32) ?[]const u8 {
-        const entry = self.findEntry(key) orelse return null;
-        return entry.plurals[entry.plural_rule.select(n)];
-    }
-
-    pub fn setLocale(self: *LocalizationSystem, id: LocaleId) !void {
-        try self.ensureLoaded(id);
-        self.active = id;
-    }
-};
-
-// Thin Godot-familiar sugar on NexusContext
-pub fn tr(ctx: *NexusContext, key: []const u8) []const u8 {
-    return ctx.localization.lookup(.{ .key = key }) orelse key;
-}
+// Shapes TBD — illustrates query model only
+const play = ctx.localization.resolve("UI_PLAY") orelse "UI_PLAY";
 ```
 
-**ECS integration:** a `LocalizedLabel` component stores `StringKey`; a gather system resolves
-strings once per locale change, not per frame. Node `Control` paths mirror the same data.
-
-**Build tool** (`nexus-locale`): validates `.po`, emits JSON, optionally interns keys →
-`StringKey` manifest for comptime-checked lookups (stretch).
+- **ECS** — resolve on locale change, not per frame.
+- **Build** — `nexus-locale` validates `.po`, emits JSON under `res://locale/`.
+- **Sugar** — Godot-style `tr()` helpers likely; names frozen at implementation.
 
 **Example compiled JSON:**
 
@@ -257,7 +224,7 @@ strings once per locale change, not per frame. Node `Control` paths mirror the s
 |--------|---------------|-------|
 | Editor UI | Custom retained toolkit in-engine | Dear ImGui in **detachable** Crucible |
 | Game UI | `Control` node tree | `Control` + **2D batcher** (same goal, explicit draw path) |
-| i18n API | `TranslationServer` singleton | `LocalizationSystem` + `tr()` sugar |
+| i18n API | `TranslationServer` singleton | `LocalizationSystem` (API TBD) + familiar `tr()` sugar |
 | i18n source | CSV/PO often loaded at runtime | `.po` → compile → JSON only at runtime |
 | Foundation | Monolithic engine binary | zGameLib unaware of locales |
 

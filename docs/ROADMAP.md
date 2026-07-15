@@ -1,10 +1,12 @@
-# Nexus-engine Roadmap
+# Nexus Roadmap
 
-**Goal:** Build a modern, hybrid game engine (Tier 2) on top of zGameLib — retained
-`SceneNode` hierarchy for authoring, optional ECS for hot paths, Vulkan-only rendering,
-clean-room modernization inspired by Redot/Godot behavior (not code).
+**Official name:** **Nexus** (repository: `Nexus-engine`, Tier 2).
 
-**Aliases:** Nexus Engine = *Forge* · Link-editor = *Crucible*
+**Goal:** Build a modern, hybrid game engine on zGameLib — retained `SceneNode` hierarchy,
+**Flecs adapter** for optional ECS hot paths, Vulkan-only rendering, opinionated immediate-mode
+tool UI, example-driven releases, clean-room modernization inspired by Redot/Godot behavior (not code).
+
+**Aliases:** *Forge* (runtime) · *Crucible* (editor, Tier 3)
 
 | Doc | Purpose |
 |-----|---------|
@@ -12,10 +14,14 @@ clean-room modernization inspired by Redot/Godot behavior (not code).
 | [`theory/README.md`](theory/README.md) | Why the engine is shaped this way (read 01→06) |
 | [`examples/ladder.md`](examples/ladder.md) | Per-example design + build targets |
 | [`file-tree.yml`](file-tree.yml) · [`dependencies.yml`](dependencies.yml) | Repo layout and Tier 1 deps |
+| [`crucible/README.md`](crucible/README.md) | Crucible (Tier 3) editor — docs in-repo for now |
 | [zGameLib ROADMAP](../zGameLib/docs/ROADMAP.md) | Tier 1 foundation milestones |
 
 > **Philosophy (via zGameLib / Handmade Hero):** thin layers, explicit control,
 > replaceable pieces, raw `zgame.*` always reachable, no framework magic.
+
+**Example-driven rule:** every version from **0.1.0** upward ships **implementation +
+documentation + ≥1 proving example** (design doc in `docs/examples/`, target `zig build <name>`).
 
 **Current release line:** `0.0.x` — documentation ahead of implementation (July 2026).
 
@@ -26,7 +32,7 @@ clean-room modernization inspired by Redot/Godot behavior (not code).
 ```ascii
 Authoring surface (always)          Performance plane (opt-in)
 ─────────────────────────          ────────────────────────────
-SceneTree / SceneNode              ECS world (Flecs → maybe native Zig)
+SceneTree / SceneNode              ECS world (Flecs adapter → native Zig only if needed)
   Player · Sprite · Camera             e_player · e_sprite · …
          │                                    ▲
          └────────── EcsBridge ──────────────┘
@@ -35,8 +41,9 @@ SceneTree / SceneNode              ECS world (Flecs → maybe native Zig)
 ```
 
 - **SceneNodes** — serialization, editor (Crucible), gameplay API, hierarchy.
-- **ECS** — physics integration, render gather, particles, crowds (opt-in per node).
-- **Crucible (Tier 3)** — detachable editor; immediate-mode Dear ImGui (`-DimGui`); in-game UI stays on 2D batcher.
+- **ECS** — Flecs adapter first; physics, render gather, particles (opt-in per node).
+- **UI** — immediate mode for tools; semi-retained scene UI only when necessary; in-game HUD on 2D batcher.
+- **Crucible (Tier 3)** — docs in [`crucible/README.md`](crucible/README.md); separate repo later; ImGui when zGameLib `zimgui` lands (late Tier 1).
 
 ---
 
@@ -59,8 +66,8 @@ in the `nexus-engine` artifact. Design docs: [`docs/examples/`](examples/).
 | **0.8.0** | *Debug* | [`debug-ui`](examples/debug-ui.md) | In-engine stats overlay (not Crucible) |
 | **0.9.0** | *World* | [`physics-ball`](examples/physics-ball.md) | `PhysicsServer` + bridge; fixed timestep |
 | **1.0.0** | *Alpha* | [`minimal-game`](examples/minimal-game.md) | Ship a small game without editor; `EditorHost` v1 frozen |
-| **1.1.0+** | *Crucible* | (Tier 3 repo) | Detachable editor; play mode; inspectors |
-| **1.2.0** | *i18n* | — | `LocalizationSystem`, `.po`→JSON compile, `tr()` / `tr_n()` |
+| **1.1.0+** | *Crucible* | (editor — docs in-repo) | Detachable editor; play mode; inspectors |
+| **1.2.0** | *i18n* | TBD | Data-oriented localization; `.po`→JSON; API detailed at implementation |
 
 ---
 
@@ -227,8 +234,8 @@ in the `nexus-engine` artifact. Design docs: [`docs/examples/`](examples/).
 **Implementation**
 
 - [ ] Dev overlay: FPS, node count, ECS entity count, bridge sync ms
-- [ ] Default path: `RenderingServer` debug text/quads (no ImGui required)
-- [ ] Optional richer panels when consumer builds with zGameLib `-DimGui=true`
+- [ ] Default path: `RenderingServer` debug text/quads (**no ImGui required** — zGameLib `zimgui` is late Tier 1)
+- [ ] Optional ImGui panels when `zgame.zimgui` is available (post–Tier 1 late modules)
 
 **Documentation**
 
@@ -246,7 +253,7 @@ zig build debug-ui -DimGui=true       # optional ImGui panels (needs zGameLib zi
 **Note:** Full editor is **Crucible (Tier 3)** — not this release. ImGui is optional in
 zGameLib and Nexus; **required** only in Crucible (v1.1.0+).
 
-**Tier 1 gate:** zGameLib `zimgui` wrapper (`-DimGui`) — Q3 2026 Phase 1 (optional for v0.8).
+**Tier 1 gate:** none for v0.8 (debug draw only). ImGui overlay unlocks when zGameLib ships `zimgui` (late roadmap).
 
 ---
 
@@ -288,40 +295,41 @@ zGameLib and Nexus; **required** only in Crucible (v1.1.0+).
 
 ---
 
-### v1.1.0+ — Crucible (Tier 3, separate repo)
+### v1.1.0+ — Crucible (Tier 3)
+
+**Documentation:** [`crucible/README.md`](crucible/README.md) in this repository. A separate
+git repo may be created later; `EditorHost` remains in Nexus.
 
 - Scene hierarchy dock, inspector, viewport gizmo
 - Play / pause / step; scene snapshot on stop
-- **Dear ImGui hard dependency** — immediate-mode tool UI (Casey Muratori style) via `zgame.zimgui`
+- **Dear ImGui hard dependency** — opinionated immediate-mode tool UI via `zgame.zimgui`
 - **Does not** link Flecs directly — uses `EditorHost.getEcsComponents`
-- PO editing workflow in `locale/src/` — compile to JSON via `nexus-locale` (v1.2.0)
+- PO editing workflow (stretches into v1.2.0 localization)
 
-**Tier 1 gate:** zGameLib `zimgui` shipped and stable (Vulkan pass + SDL3 events).
+**Tier 1 gate:** zGameLib `zimgui` shipped (late optional module — after 2D batcher).
 
 ---
 
 ### v1.2.0 — Localization
 
-**Implementation**
+**Decisions (fixed now):** Nexus-only; data-oriented; `.po` source → build-time JSON/binary;
+lightweight custom runtime — no ICU.
 
-- [ ] `LocalizationSystem` on `NexusContext` — data-oriented `lookup()` / `lookupPlural()`
-- [ ] `CompiledLocaleData` resource — flat entries loaded from `res://locale/<lang>.json`
-- [ ] `nexus-locale` build tool — `.po` in `locale/src/` → compiled JSON (optional `.nloc` later)
-- [ ] Runtime loads **compiled data only** (no gettext parser, no ICU, no i18next)
-- [ ] `tr()` / `tr_n()` sugar; ECS `StringKey` resolve on locale change
-- [ ] `project.nexus` default locale + fallback list
-- [ ] Crucible: PO edit/preview; triggers recompile (no i18n runtime in Tier 3)
+**Implementation** (API/schema finalized during this milestone)
+
+- [ ] `LocalizationSystem` on `NexusContext` — query compiled locale tables
+- [ ] `nexus-locale` build tool — `.po` in `locale/src/` → `res://locale/<lang>.json`
+- [ ] Runtime loads compiled data only
+- [ ] `project.nexus` default locale + fallbacks
+- [ ] Crucible: PO edit/preview (workflow)
+- [ ] **Proving example** — TBD (`i18n-demo` or `minimal-game` locale switch)
 
 **Documentation**
 
-- [ ] `Nexus_Reference.md` §14 — mark **shipped**
-- [ ] [`theory/06-ui-and-localization.md`](theory/06-ui-and-localization.md) — PO→JSON pipeline audit
-- [ ] Theory [05](theory/05-resource-and-asset-management.md) — locale JSON as resources
+- [ ] `Nexus_Reference.md` §14 — finalize and mark **shipped**
+- [ ] [`theory/06-ui-and-localization.md`](theory/06-ui-and-localization.md) — implementation audit
 
-**Example:** stretch — `minimal-game` locale switch (or dedicated `i18n-demo` if needed).
-
-**Not in zGameLib:** no ICU, no i18next, no runtime `.po` parse — Tier 1 keeps UTF-8 I/O only.
-**Deliberate choices:** `.po` for translator tooling; JSON for fast runtime; data-oriented `LocalizationSystem` vs ICU/i18next.
+**Not in zGameLib:** no i18n runtime; UTF-8 I/O only.
 
 ---
 
@@ -376,9 +384,10 @@ hardware. Details: [zGameLib macOS policy](../zGameLib/docs/ROADMAP.md#macos-pla
 | 0.5.0+ | Input depth (platform adapter) ✅ |
 | 0.7.0 | 2D batcher or retained quad path |
 | 0.9.0 | Optional: zaudio later for `AudioServer` |
-| 0.8.0 debug-ui | `-DimGui` wrapper optional (Q3 2026 planned) |
-| 1.1.0 Crucible | `-DimGui` wrapper **required** in Crucible build |
-| 1.2.0 i18n | UTF-8 I/O via zGameLib; `.po` compile + JSON load entirely in Nexus |
+| 0.8.0 debug-ui | Debug draw only (no Tier 1 ImGui gate) |
+| 0.2.0–0.7.0 | zGameLib 2D batcher / zassets (core path) |
+| 1.1.0 Crucible | zGameLib `zimgui` (**late** Tier 1 module) |
+| 1.2.0 i18n | `.po` compile + JSON in Nexus only |
 
 ---
 
@@ -402,4 +411,4 @@ hardware. Details: [zGameLib macOS policy](../zGameLib/docs/ROADMAP.md#macos-pla
 | Docs ahead of code | Version tags mark **shipped** vs **planned** in `Nexus_Reference.md` |
 | zGameLib 2D batcher slips | Interim quad renderer in `RenderingServer` |
 | Flecs ABI friction | Isolate in `nexus.ecs.flecs`; swappable adapter |
-| Crucible scope creep | Tier 3 separate repo; `EditorHost` v1 frozen at 1.0.0 |
+| Crucible scope creep | Docs in-repo; `EditorHost` v1 frozen at 1.0.0; optional separate repo later |

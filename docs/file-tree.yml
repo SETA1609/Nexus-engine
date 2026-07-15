@@ -206,6 +206,14 @@ tree:
       - path: getting-started.md
         type: file
         status: shipped
+      - path: crucible/
+        type: directory
+        status: shipped
+        description: Crucible (Tier 3) editor docs — separate repo may follow later
+        children:
+          - path: README.md
+            type: file
+            status: shipped
       - path: theory/
         type: directory
         status: shipped

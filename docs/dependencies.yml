@@ -134,11 +134,13 @@ consumes:
 
 consumed_by:
   - id: crucible
-    name: Link-editor
+    name: Crucible (Link-editor)
     tier: 3
     alias: Crucible
     relationship: editor_consumer
     status: planned
+    documentation: docs/crucible/README.md
+    repository_note: Separate git repo may be created later; docs stay in Nexus-engine for now
     consumes:
       - nexus.EditorHost
       - nexus.SceneTree
