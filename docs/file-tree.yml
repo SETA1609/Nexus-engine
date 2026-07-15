@@ -1,0 +1,180 @@
+# Nexus-engine repository layout (Tier 2 — Forge)
+# Status values: shipped | partial | stub | planned | legacy
+
+meta:
+  version: 1
+  updated: "2026-07-15"
+  project: Nexus-engine
+  alias: Forge
+  tier: 2
+  repository: SETA1609/Nexus-engine
+  role: Hybrid game engine — SceneNode tree + optional ECS + servers
+  depends_on:
+    name: zGameLib
+    tier: 1
+    # Local path dependency (sibling repo or git submodule)
+    path: ../zGameLib
+    layout: ../zGameLib/docs/file-tree.yml
+    dependencies: ../zGameLib/docs/dependencies.yml
+
+tree:
+  - path: build.zig
+    type: file
+    status: shipped
+    description: Build entry — `nexus` module + `nexus-engine` executable
+
+  - path: build.zig.zon
+    type: file
+    status: shipped
+    description: Depends on zGameLib via `.zgame = .{ .path = "../zGameLib" }`
+
+  - path: LICENSE
+    type: file
+    status: planned
+    description: Apache-2.0 (mirror zGameLib)
+
+  - path: NOTICE
+    type: file
+    status: planned
+
+  - path: LICENSING.md
+    type: file
+    status: planned
+
+  - path: CONTRIBUTING.md
+    type: file
+    status: planned
+
+  - path: AGENTS.md
+    type: file
+    status: shipped
+    description: Agent / CI build instructions
+
+  - path: src/
+    type: directory
+    description: Engine source
+    children:
+      - path: main.zig
+        type: file
+        status: shipped
+        description: Minimal boot — platform init + event loop (to become NexusApp shell)
+      - path: nexus/
+        type: directory
+        status: planned
+        description: The `nexus` Zig module (engine API)
+        children:
+          - path: root.zig
+            type: file
+            status: planned
+            description: Public exports
+          - path: runtime/
+            type: directory
+            status: planned
+            description: NexusApp, NexusContext, main loop
+          - path: scene/
+            type: directory
+            status: planned
+            description: SceneNode, SceneTree, Node2D/3D, signals
+          - path: ecs/
+            type: directory
+            status: planned
+            description: World interface, Flecs adapter, EcsBridge
+          - path: servers/
+            type: directory
+            status: planned
+            description: RenderingServer, PhysicsServer, DisplayServer (+ dummy backends)
+          - path: resources/
+            type: directory
+            status: planned
+            description: ResourceDB, texture, mesh, shader handles
+          - path: editor/
+            type: directory
+            status: planned
+            description: EditorHost API (consumed by Crucible / Link-editor)
+      - path: c/
+        type: directory
+        status: legacy
+        description: Template leftover — not compiled by build.zig
+      - path: cpp/
+        type: directory
+        status: legacy
+        description: Template leftover — not compiled by build.zig
+
+  - path: tests/
+    type: directory
+    status: planned
+    description: Contract + behavioral TDD suites
+    children:
+      - path: contract/
+        type: directory
+        status: planned
+        description: "`zig build test` — API + data invariants (gates CI)"
+      - path: tdd/
+        type: directory
+        status: planned
+        description: "`zig build test-tdd` — red→green behavioral suite"
+
+  - path: examples/
+    type: directory
+    description: >
+      Reference apps — NOT shipped with the engine artifact. Separate
+      `zig build <example>` targets; design docs in docs/examples/.
+    children:
+      - path: hello-nexus/
+        type: directory
+        status: planned
+        description: Rung 0 — NexusApp boot, clear-color
+      - path: colored-quad/
+        type: directory
+        status: planned
+        description: Rung 1 — SceneTree + Node2D + drawable
+      - path: sprite-demo/
+        type: directory
+        status: planned
+        description: Rung 2 — ResourceDB texture + Sprite2D
+      - path: moving-sprite/
+        type: directory
+        status: planned
+        description: Rung 3 — InputMap + process traversal
+      - path: physics-ball/
+        type: directory
+        status: planned
+        description: Rung 4 — PhysicsServer + EcsBridge sync
+      - path: particle-storm/
+        type: directory
+        status: planned
+        description: Rung 5 — ECS-only entities (no SceneNode per particle)
+
+  - path: docs/
+    type: directory
+    description: Engine documentation
+    children:
+      - path: ROADMAP.md
+        type: file
+        status: shipped
+      - path: Nexus_Reference.md
+        type: file
+        status: shipped
+        description: Authoritative API reference (API-first source)
+      - path: architecture.md
+        type: file
+        status: shipped
+      - path: file-tree.yml
+        type: file
+        status: shipped
+        description: Repository layout (this file)
+      - path: dependencies.yml
+        type: file
+        status: shipped
+        description: Zig packages, transitive zGameLib deps, consumers
+      - path: getting-started.md
+        type: file
+        status: shipped
+      - path: theory/
+        type: directory
+        status: shipped
+        description: Design rationale (00–05)
+      - path: examples/
+        type: directory
+        status: planned
+        description: Per-example design docs + ladder (mirror zGameLib model)

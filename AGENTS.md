@@ -22,7 +22,7 @@ cd ../zGameLib && git submodule update --init --recursive
 ## Architecture
 
 - **Tier 2: Nexus Engine** (alias: *Forge*). **Tier 3: Link-editor** (alias: *Crucible*). Tier 2 consumes zGameLib (Tier 1). Single executable, no library output.
-- Docs: `docs/Nexus_Reference.md`, `docs/theory/` (01–05).
+- Docs: `docs/Nexus_Reference.md`, `docs/theory/` (01–05), `docs/file-tree.yml`, `docs/dependencies.yml` (zGameLib — `../zGameLib/docs/{file-tree,dependencies}.yml`).
 - Entrypoint: `src/main.zig` — imports `zgame`, inits platform, creates Vulkan window, event loop.
 - All zGameLib APIs reachable: `zgame.platform`, `zgame.vk`, `zgame.Gpu`, `zgame.FrameRing`, etc.
 - C/C++ source dirs (`src/c/`, `src/cpp/`) are leftovers from the template — **not compiled** by current `build.zig`.

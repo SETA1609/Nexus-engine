@@ -1,0 +1,156 @@
+# Nexus-engine dependencies (Tier 2 — Forge)
+# Source of truth for Zig deps: build.zig.zon
+# Status: shipped | partial | optional | planned
+
+meta:
+  version: 1
+  updated: "2026-07-15"
+  project: Nexus-engine
+  alias: Forge
+  tier: 2
+  repository: SETA1609/Nexus-engine
+  manifest: build.zig.zon
+
+consumes:
+  zig_packages:
+    - id: zgame
+      zon_name: zgame
+      package: zGameLib
+      path: ../zGameLib
+      kind: path_dependency
+      status: shipped
+      role: Tier 1 foundation — platform, Vulkan, Gpu, FrameRing, zclip, …
+      module: zgame
+      license: Apache-2.0
+      layout: ../zGameLib/docs/file-tree.yml
+      dependencies_doc: ../zGameLib/docs/dependencies.yml
+      note: Sibling repo or git submodule at ../zGameLib
+
+  transitive_via_zgame:
+    - id: platform
+      via: zgame
+      status: shipped
+      module: zgame.platform
+      role: Window, events, input (used by NexusApp, DisplayServer)
+
+    - id: vulkan_stack
+      via: zgame
+      status: shipped
+      modules: [zgame.vk, zgame.vma, zgame.volk, zgame.shaderc]
+      role: GPU primitives (used by RenderingServer)
+
+    - id: gpu_frame_ring
+      via: zgame
+      status: shipped
+      modules: [zgame.Gpu, zgame.FrameRing, zgame.surface, zgame.swapchain]
+      role: Render helpers behind RenderingServer
+
+    - id: zclip
+      via: zgame
+      status: partial
+      module: zgame.zclip
+      role: Animation data (future AnimationServer)
+
+    - id: sdl3
+      via: zgame → platform
+      status: shipped
+      role: OS windowing backend (never imported directly by Nexus public API)
+
+  planned_direct:
+    - id: flecs
+      package: Flecs
+      status: planned
+      phase: 1
+      role: ECS adapter behind nexus.ecs.flecs
+      module: nexus.ecs.flecs
+      policy: Flecs types must not leak into public SceneNode API
+      license: MIT
+      repository: SanderMertens/flecs
+
+    - id: physics_backend
+      package: TBD
+      status: planned
+      phase: 2
+      candidates:
+        - name: Jolt Physics
+          role: 3D rigid bodies
+          license: MIT
+        - name: 2D physics lib
+          role: 2D sprite demos first
+      role: PhysicsServer backend behind adapter
+      module: nexus.servers.physics
+
+    - id: imgui
+      package: Dear ImGui
+      status: planned
+      phase: 3
+      tier: 3
+      role: Link-editor (Crucible) UI — not baked into engine binary
+      policy: Consumed by Crucible via zGameLib platform native handles
+      note: Prefer Tier 3 repo; Nexus exposes EditorHost only
+
+  planned_transitive_via_zgame:
+    - id: zaudio
+      via: zgame
+      status: planned
+      module: zgame.zaudio
+      role: AudioServer when zaudio lands in zGameLib
+
+    - id: zassets
+      via: zgame
+      status: planned
+      module: zgame.zassets
+      role: Asset decode; Nexus owns ResourceDB / res:// policy
+
+    - id: zmath
+      via: zgame
+      status: planned
+      module: zgame.zmath
+      role: Transform math types for Node2D/Node3D
+
+consumed_by:
+  - id: crucible
+    name: Link-editor
+    tier: 3
+    alias: Crucible
+    relationship: editor_consumer
+    status: planned
+    consumes:
+      - nexus.EditorHost
+      - nexus.SceneTree
+      - nexus.SceneNode
+    policy: Does not link Flecs or zgame directly in preferred layout
+
+  - id: example_ladder
+    name: Nexus-engine examples
+    tier: internal
+    relationship: reference_consumers
+    status: planned
+    resolution:
+      kind: build_step
+      note: Separate zig build targets — not linked into nexus-engine artifact
+    examples:
+      - hello-nexus
+      - colored-quad
+      - sprite-demo
+      - moving-sprite
+      - physics-ball
+      - particle-storm
+
+  - id: shipped_games
+    name: Games built on Nexus-engine
+    tier: external
+    relationship: end_consumers
+    status: open
+    consumes_module: nexus
+    note: Games import nexus; may still reach zgame.* for raw access (raw-first)
+
+policy:
+  pay_for_what_you_use: true
+  raw_first: true
+  tier1_boundary: Decode, GPU bring-up, platform — zGameLib only
+  tier2_boundary: Scene, servers, resources, input actions — Nexus
+  tier3_boundary: Editor UI — Crucible
+  no_gpl_lgpl_agpl: true
+  no_flecs_in_public_api: true
+  no_redot_godot_source_copy: true

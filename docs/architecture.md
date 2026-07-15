@@ -66,6 +66,13 @@ See [`theory/01-scene-representation.md`](theory/01-scene-representation.md) and
 
 The engine links `zgame` via `build.zig.zon` (local path `../zGameLib`).
 
+## Repository layout & dependencies
+
+| | This repo (Tier 2) | zGameLib (Tier 1) |
+|--|--|--|
+| Layout | [`file-tree.yml`](file-tree.yml) | [`../zGameLib/docs/file-tree.yml`](../zGameLib/docs/file-tree.yml) |
+| Dependencies | [`dependencies.yml`](dependencies.yml) | [`../zGameLib/docs/dependencies.yml`](../zGameLib/docs/dependencies.yml) |
+
 ## Current state
 
 Early bootstrap — documented architecture ahead of implementation:
