@@ -88,5 +88,7 @@ Early bootstrap — documented architecture ahead of implementation:
 - Hybrid scene/ECS, servers, resources: **documented** (see theory ladder)
 - Link-editor `EditorHost`: **specified** in `Nexus_Reference.md`
 
-Next implementation rungs: `SceneNode` + `SceneTree` → `EcsBridge` stub →
-`ResourceLoader` skeleton → minimal `RenderingServer`.
+Next releases (see [`ROADMAP.md`](ROADMAP.md)): **v0.0.1** bootstrap → **v0.1.0**
+`clear-color` → **v0.2.0** scene nodes → **v0.3.0–0.4.0** ECS bridge.
+
+Example design docs: [`examples/ladder.md`](examples/ladder.md).

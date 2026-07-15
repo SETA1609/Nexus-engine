@@ -3,6 +3,9 @@
 *One frame from `pollEvents` to `present`: fixed timestep, node traversal, ECS
 phases, and server flush — in a deterministic order.*
 
+> **Release alignment:** poll + present **v0.1.0** (`clear-color`); full pipeline **v0.4.0**;
+> fixed physics step emphasis **v0.9.0** (`physics-ball`).
+
 Nexus Engine's `NexusApp` owns the loop. It consumes zGameLib's **platform poll** and
 **GPU frame ring** (Tier 1) but decides **when** nodes, ECS, and servers run
 (Tier 2). This chapter is the clock diagram for the hybrid architecture.

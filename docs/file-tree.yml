@@ -120,30 +120,50 @@ tree:
       Reference apps — NOT shipped with the engine artifact. Separate
       `zig build <example>` targets; design docs in docs/examples/.
     children:
-      - path: hello-nexus/
+      - path: clear-color/
         type: directory
         status: planned
-        description: Rung 0 — NexusApp boot, clear-color
-      - path: colored-quad/
+        description: v0.1.0 — NexusApp + RenderingServer
+      - path: textured-quad/
         type: directory
         status: planned
-        description: Rung 1 — SceneTree + Node2D + drawable
-      - path: sprite-demo/
+        description: v0.2.0 — Sprite2D + ResourceDB
+      - path: node-hierarchy/
         type: directory
         status: planned
-        description: Rung 2 — ResourceDB texture + Sprite2D
-      - path: moving-sprite/
+        description: v0.2.0 — SceneTree reparent + transforms
+      - path: ecs-basic/
         type: directory
         status: planned
-        description: Rung 3 — InputMap + process traversal
+        description: v0.3.0 — EcsBridge attach
+      - path: hybrid-sync/
+        type: directory
+        status: planned
+        description: v0.4.0 — transform sync
+      - path: simple-movement/
+        type: directory
+        status: planned
+        description: v0.5.0 — InputMap
+      - path: camera/
+        type: directory
+        status: planned
+        description: v0.6.0 — Camera2D
+      - path: particles/
+        type: directory
+        status: planned
+        description: v0.7.0 — ECS-only particles
+      - path: debug-ui/
+        type: directory
+        status: planned
+        description: v0.8.0 — profiler overlay
       - path: physics-ball/
         type: directory
         status: planned
-        description: Rung 4 — PhysicsServer + EcsBridge sync
-      - path: particle-storm/
+        description: v0.9.0 — PhysicsServer
+      - path: minimal-game/
         type: directory
         status: planned
-        description: Rung 5 — ECS-only entities (no SceneNode per particle)
+        description: v1.0.0 — alpha sample game
 
   - path: docs/
     type: directory
@@ -176,5 +196,5 @@ tree:
         description: Design rationale (00–05)
       - path: examples/
         type: directory
-        status: planned
-        description: Per-example design docs + ladder (mirror zGameLib model)
+        status: shipped
+        description: Per-example design docs + ladder (README, ladder, vision, mission)

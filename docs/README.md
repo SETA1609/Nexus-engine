@@ -8,7 +8,8 @@ alias for the same engine — use either name; docs standardize on **Nexus Engin
 | Document | What it covers |
 |----------|---------------|
 | [`Nexus_Reference.md`](Nexus_Reference.md) | Authoritative Tier 2 reference: hybrid SceneNode + ECS, servers, EditorHost |
-| [`ROADMAP.md`](ROADMAP.md) | Phased implementation plan, philosophy, TDD workflow |
+| [`ROADMAP.md`](ROADMAP.md) | Semantic version milestones (0.1.0→1.0.0) + examples |
+| [`examples/README.md`](examples/README.md) | Example ladder index + design docs |
 | [`file-tree.yml`](file-tree.yml) | Nexus-engine repo layout |
 | [`dependencies.yml`](dependencies.yml) | What Nexus consumes / is consumed by (zGameLib — [`../zGameLib/docs/dependencies.yml`](../zGameLib/docs/dependencies.yml)) |
 | [`architecture.md`](architecture.md) | Short stack overview and dependency graph |

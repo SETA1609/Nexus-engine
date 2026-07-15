@@ -3,6 +3,9 @@
 *How SceneNodes connect to Flecs, what syncs when, and how Link-editor inspects both
 without coupling to a specific ECS library.*
 
+> **Release alignment:** attach **v0.3.0** (`ecs-basic`); sync policies **v0.4.0** (`hybrid-sync`).
+> Crucible reads ECS via `EditorHost` at **v1.1.0+** — not direct Flecs linkage.
+
 File 01 established the **node tree** as Nexus Engine's authoring model. This chapter
 covers the **optional performance plane**: entities, components, and systems —
 starting with a **thin Flecs adapter**, with a documented path to pure-Zig ECS

@@ -3,6 +3,8 @@
 *How Nexus Engine loads, caches, and identifies assets — and what stays in zGameLib as
 raw decode I/O.*
 
+> **Release alignment:** minimal `ResourceDB` **v0.2.0** (`textured-quad`); hot-reload **v0.9.0**.
+
 Redot's `core/io/resource_loader.cpp` and `Resource` hierarchy are **engine**
 concerns: paths, UIDs, import metadata, reference counting, and dependency graphs.
 zGameLib's planned `zassets` module is **decode-only**: bytes on disk → structs in

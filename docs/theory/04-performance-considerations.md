@@ -3,6 +3,8 @@
 *What the hybrid model costs, where it wins over pure Godot-style nodes, and
 how to profile before moving more logic into ECS.*
 
+> **Release alignment:** ECS-only particles **v0.7.0** (`particles`); profiler overlay **v0.8.0** (`debug-ui`).
+
 Nexus Engine optimizes for **shipping Redot-like games in Zig**, not for winning synthetic
 ECS benchmarks. This chapter sets honest expectations and practical rules.
 

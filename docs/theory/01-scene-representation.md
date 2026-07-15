@@ -3,6 +3,9 @@
 *Why Nexus Engine keeps a SceneNode hierarchy, what each node carries, and how that
 differs from both classic Godot and a pure ECS engine.*
 
+> **Release alignment:** implemented **v0.2.0** (`textured-quad`, `node-hierarchy`).
+> Read after [03](03-systems-and-update-loop.md) intro if following examples from v0.1.0.
+
 Redot's `scene/main/node.h` is the center of gravity for gameplay: parent/child
 links, tree order, groups, pause inheritance, and per-node `_process` hooks.
 [File 00b](00-legacy-node-scene-architecture.md) covers that architecture

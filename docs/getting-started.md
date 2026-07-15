@@ -5,6 +5,9 @@ name; **Forge** is an alias for the same project. See
 [`Nexus_Reference.md`](Nexus_Reference.md) and [`theory/README.md`](theory/README.md)
 for architecture before extending code.
 
+**Release plan:** [`ROADMAP.md`](ROADMAP.md) (v0.1.0 `clear-color` → v1.0.0 alpha).
+**Examples (planned):** [`examples/ladder.md`](examples/ladder.md).
+
 ## Prerequisites
 
 - **Zig 0.16+**
@@ -32,8 +35,9 @@ The binary lands at `zig-out/bin/nexus-engine`.
 │   ├── c/                # engine-native C sources (optional)
 │   └── cpp/              # engine-native C++ sources (optional)
 └── docs/
+    ├── ROADMAP.md          # version milestones + examples per release
     ├── Nexus_Reference.md  # Tier 2 authoritative reference
-    ├── architecture.md     # short stack overview
+    ├── examples/           # example ladder + per-example design docs
     ├── theory/             # incremental docs (01–05)
     └── getting-started.md  # this file
 ```

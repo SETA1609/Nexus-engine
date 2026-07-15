@@ -2,9 +2,24 @@
 ## Hybrid Game Engine Layer on zGameLib
 
 **Version:** 2026-07-15  
-**Status:** Living reference document for Tier 2 (the engine)  
+**Status:** Living reference — API-first contract; implementation tracks [`ROADMAP.md`](ROADMAP.md)  
+**Release line:** `0.0.x` (bootstrap) → `0.1.0` (`clear-color`) → … → `1.0.0` (alpha)  
 **Aliases:** *Forge* (Nexus Engine); *Crucible* (Link-editor). Docs use canonical names.  
 **Philosophy:** Retained SceneNodes for usability and editor friendliness; optional ECS for hot systems. Raw zGameLib access always reachable beneath.
+
+### Implementation status (July 2026)
+
+| API area | Doc status | Code status | Ships in |
+|----------|------------|-------------|----------|
+| `NexusApp` / `NexusContext` | Specified §4.1 | Bootstrap `main.zig` only | **0.1.0** |
+| `SceneTree` / `SceneNode` | Specified §4–5 | Not implemented | **0.2.0** |
+| `EcsBridge` / Flecs adapter | Specified §6 | Not implemented | **0.3.0–0.4.0** |
+| `RenderingServer` | Specified §4.3 | Not implemented | **0.1.0** |
+| `InputMap` / `DisplayServer` | Specified §4.3 | Not implemented | **0.5.0** |
+| `PhysicsServer` | Specified §4.3 | Not implemented | **0.9.0** |
+| `EditorHost` | Specified §9 | Not implemented | **1.0.0** freeze |
+
+**Examples:** design docs in [`docs/examples/`](examples/); source lands per version column.
 
 ---
 
@@ -328,16 +343,28 @@ Link-editor does **not** link Flecs directly in the preferred layout — it asks
 
 ---
 
-## 10. Future Evolution
+## 10. Release Evolution (semantic versions)
 
-| Stage | SceneNodes | ECS | Notes |
-|-------|------------|-----|-------|
-| **Now** | Full authoring | Flecs for physics + render gather | Bridge sync on transforms |
-| **Next** | Same | Animation sampling, particles | More systems move to ECS phases |
-| **Later** | Authoring + scripting API | Optional pure-Zig ECS | Flecs retired if comptime wins |
-| **Never (by policy)** | — | Replace node tree entirely | Editor and Godot-like UX depend on hierarchy |
+Aligned with [`ROADMAP.md`](ROADMAP.md) and [`examples/ladder.md`](examples/ladder.md).
 
-Performance expectations vs classic Godot-style nodes: [`theory/04-performance-considerations.md`](theory/04-performance-considerations.md).
+| Version | SceneNodes | ECS | Example |
+|---------|------------|-----|---------|
+| **0.1.0** | Empty tree | — | `clear-color` |
+| **0.2.0** | Hierarchy + drawables | — | `textured-quad`, `node-hierarchy` |
+| **0.3.0** | Same | Attach mirror | `ecs-basic` |
+| **0.4.0** | Same | Sync transforms | `hybrid-sync` |
+| **0.5.0–0.6.0** | Input, camera | Optional mirror | `simple-movement`, `camera` |
+| **0.7.0** | Spawner node | ECS-only particles | `particles` |
+| **0.9.0** | Rigid bodies | Physics authority | `physics-ball` |
+| **1.0.0** | Authoring API frozen | Flecs default adapter | `minimal-game` |
+| **1.1.0+** | Crucible edits tree | Inspector reads bridge | Tier 3 repo |
+
+**Later (post-1.0):** evaluate pure-Zig ECS behind same `World` interface; animation
+sampling on ECS; optional scripting host.
+
+**Never (by policy):** replace SceneNode tree with pure ECS for authoring.
+
+Performance expectations: [`theory/04-performance-considerations.md`](theory/04-performance-considerations.md).
 
 ---
 
@@ -357,31 +384,37 @@ Upstream foundation docs: [zGameLib theory](https://github.com/SETA1609/zGameLib
 
 ---
 
-## 12. Getting Started (Minimal)
+## 12. Getting Started
+
+**Today (bootstrap):** `zig build` + `zig build run` — raw zGameLib window loop in `src/main.zig`.
+
+**Target (v0.1.0+):** first example [`clear-color`](examples/clear-color.md):
 
 ```zig
-const zgame = @import("zgame");
 const nexus = @import("nexus");
 
 pub fn main() !void {
     var app = try nexus.NexusApp.init(.{
-        .title = "My Game",
+        .title = "clear-color",
         .width = 1280,
         .height = 720,
     });
     defer app.deinit();
 
-    // Raw Tier 1 still reachable
-    const gpu = try zgame.Gpu.init(app.window, .{});
-
-    try app.loadScene("res://main.fscn");
     while (!app.shouldClose()) {
-        try app.tick();
+        try app.tick(); // poll → sim phases → RenderingServer → present
     }
 }
 ```
 
-*(API aspirational — see implementation status below.)*
+**Learning path:** examples per version in [`examples/ladder.md`](examples/ladder.md) ·
+theory in [`theory/README.md`](theory/README.md).
+
+```zig
+// Raw Tier 1 remains available from game code when a server is in the way:
+const zgame = @import("zgame");
+// zgame.Gpu, zgame.platform, …
+```
 
 ---
 
