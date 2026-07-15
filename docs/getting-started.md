@@ -1,5 +1,10 @@
 # Getting Started — Nexus Engine
 
+This repo (**Nexus-engine**) is the Tier 2 engine. **Nexus Engine** is the canonical
+name; **Forge** is an alias for the same project. See
+[`Nexus_Reference.md`](Nexus_Reference.md) and [`theory/README.md`](theory/README.md)
+for architecture before extending code.
+
 ## Prerequisites
 
 - **Zig 0.16+**
@@ -27,8 +32,10 @@ The binary lands at `zig-out/bin/nexus-engine`.
 │   ├── c/                # engine-native C sources (optional)
 │   └── cpp/              # engine-native C++ sources (optional)
 └── docs/
-    ├── architecture.md   # the 3-handshake model + design
-    └── getting-started.md # this file
+    ├── Nexus_Reference.md  # Tier 2 authoritative reference
+    ├── architecture.md     # short stack overview
+    ├── theory/             # incremental docs (01–05)
+    └── getting-started.md  # this file
 ```
 
 ## Extending

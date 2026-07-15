@@ -1,88 +1,78 @@
-# Nexus Engine — Architecture
+# Nexus Engine — Architecture Overview
 
-## A Tier 2 Engine on zGameLib
+> **Full reference:** [`Nexus_Reference.md`](Nexus_Reference.md)  
+> **Deep dive:** [`theory/README.md`](theory/README.md)
 
-Nexus Engine is a **Tier 2 game engine** built on top of the **zGameLib** framework (Tier 1). It provides higher-level game systems — scene graph, servers, resource management, scripting — while keeping raw access to the foundation beneath.
+This repository (**Nexus-engine**) is **Nexus Engine** (Tier 2) on **zGameLib**
+(Tier 1). *Forge* is an alias for Nexus Engine. **Link-editor** (Tier 3) is the
+detachable editor (*Crucible* is an alias).
 
-It follows the same **3-handshake model** as the framework it consumes:
+## 3-tier stack
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  TIER 3: EDITOR (Human + Scripting Layer)                    │
-│    • Visual inspection of what the code does                 │
-│    • Scripting (Mono/C# or native Zig)                       │
-│    • Optional — many projects ship without it                │
+│  TIER 3: LINK-EDITOR (Editor)                                   │
+│    Dear ImGui · SceneNode editing · ECS inspect via Nexus Engine    │
 └───────────────────────────────┬──────────────────────────────┘
-                                │ uses / extends
+                                │ EditorHost
 ┌───────────────────────────────▼──────────────────────────────┐
-│  TIER 2: NEXUS ENGINE (Abstraction Layer)                    │
-│    • Higher-level game systems (scene, servers, resources)   │
-│    • Built on top of zGameLib APIs                           │
-│    • No editor required to ship games                        │
-│    • One possible consumer of the framework                  │
+│  TIER 2: NEXUS ENGINE (this repo)                                   │
+│    Hybrid SceneNode tree + optional ECS (Flecs first)        │
+│    Servers · resources · project settings · scripting        │
 └───────────────────────────────┬──────────────────────────────┘
-                                │ uses or re-exports
+                                │ zgame.*
 ┌───────────────────────────────▼──────────────────────────────┐
-│  TIER 1: zGAMELIB FRAMEWORK (Foundation — raylib-like)       │
-│    • Direct game development (like raylib)                   │
-│    • Raw access to platform, Vulkan, audio, assets, math     │
-│    • Transparent — every layer re-exports the one below      │
-│    • Can be used standalone to ship complete games           │
+│  TIER 1: zGAMELIB                                            │
+│    platform · Vulkan · FrameRing · (planned) audio/assets    │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### Key insight
-The engine is **just another consumer** of zGameLib. It can re-export zGameLib's APIs, wrap them, or bypass them entirely when raw access is needed.
+Nexus Engine is **just another consumer** of zGameLib — it can re-export, wrap, or bypass
+the foundation when raw access is needed.
 
----
+## Hybrid model (summary)
 
-## Design Principles
+- **SceneNodes** — authoring, serialization, Link-editor, Godot-like gameplay API
+- **ECS (optional)** — physics, render gather, crowds; synced via `EcsBridge`
+- **Servers** — Redot-style rendering/audio/physics facades over Tier 1 primitives
 
-### Raw-First & Transparent
-Every engine convenience layer is built on raw zGameLib APIs that remain fully reachable. You never get stuck.
+See [`theory/01-scene-representation.md`](theory/01-scene-representation.md) and
+[`theory/02-ecs-integration.md`](theory/02-ecs-integration.md).
 
-### Servers over Monoliths
-Engine subsystems (rendering, audio, physics, scripting) follow the server pattern — independent, swappable, communicating through narrow seams.
+## Design principles
 
-### Explicit over Implicit
-Following zGameLib's lead: Vulkan is the primary graphics path, control is always explicit.
+| Principle | Nexus Engine |
+|-----------|-------|
+| Raw-first | `zgame` APIs remain reachable from game code |
+| Servers over monoliths | Swappable backends + dummy servers |
+| Explicit | Vulkan-only graphics |
+| Hybrid by default | Nodes for UX; ECS where profiling demands |
 
----
-
-## Dependency Graph
+## Dependency graph
 
 ```
 ┌────────────────────────────────────────┐
-│  Nexus Engine (Tier 2)                 │
-│  • scene graph                         │
-│  • servers (render, audio, physics)    │
-│  • resource management                 │
-│  • scripting integration               │
+│  Nexus Engine (Tier 2)                        │
+│  • SceneTree / SceneNode / EcsBridge   │
+│  • ResourceDB · NexusApp               │
+│  • RenderingServer · PhysicsServer · … │
 ├────────────────────────────────────────┤
 │  zGameLib (Tier 1)                     │
-│  • platform (SDL3)                     │
-│  • vulkan (vk + volk + VMA + shaderc) │
-│  • surface bridge + swapchain          │
-│  • Gpu · FrameRing · App               │
-│  • animation (zClip)                   │
-├────────────────────────────────────────┤
-│  Sibling Libraries                     │
-│  • platform adapter (windowing/input)  │
-│  • vulkan stack adapter                │
-│  • zClip (animation)                   │
-│  • (future: audio, assets, math)       │
+│  • platform · Gpu · FrameRing          │
+│  • vk · shaderc · zclip                │
+│  • (planned) zaudio · zassets · zmath  │
 └────────────────────────────────────────┘
 ```
 
-The engine links `zgame` which transitively links only the sibling libraries it uses.
+The engine links `zgame` via `build.zig.zon` (local path `../zGameLib`).
 
----
+## Current state
 
-## Current State
+Early bootstrap — documented architecture ahead of implementation:
 
-This engine is in early development. The foundation is wired:
-- zGameLib dependency via local path in `build.zig.zon`
-- `zgame` module imported in the engine root
-- Platform initialisation + Vulkan window at startup
+- zGameLib wired; platform + Vulkan window at startup (`src/main.zig`)
+- Hybrid scene/ECS, servers, resources: **documented** (see theory ladder)
+- Link-editor `EditorHost`: **specified** in `Nexus_Reference.md`
 
-Next rungs will add engine-specific systems on top of zGameLib's building blocks.
+Next implementation rungs: `SceneNode` + `SceneTree` → `EcsBridge` stub →
+`ResourceLoader` skeleton → minimal `RenderingServer`.
