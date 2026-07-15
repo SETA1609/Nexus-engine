@@ -95,6 +95,46 @@ localization in scene files genuinely helps — not as a default widget toolkit.
 
 ---
 
+---
+
+## Hot reload architecture
+
+Hot reload flows through three tiers with different responsibilities:
+
+```ascii
+CRUCIBLE (Tier 3)                       NEXUS ENGINE (Tier 2)              zGAMELIB (Tier 1)
+─────────────────                       ──────────────────────              ─────────────────────
+File watcher                           ReloadEventBus                     Rebuild primitives
+  │                                        │                                │
+  ├──► EditorHost.reimport(path) ──► ResourceDB.invalidate                  │
+  │                                        │                                │
+  │                                  ReloadEventBus.publish ────► Re-decode (zassets)
+  │                                        │                                │
+  │                                        ├──► SceneNode re-bind          GPU re-upload
+  │                                        ├──► ECS component update       (consumer-driven)
+  │                                        └──► Server: re-upload GPU
+  │
+  ├──► EditorHost.reloadScene ──► SceneTree re-instantiate
+  ├──► EditorHost.reloadLocale ──► LocalizationSystem re-resolve
+  └──► Play-in-editor ──► Scene fork + shared ResourceDB
+```
+
+**Core principle:** data before code. Resource, localization, and scene reload
+are first-class. Code hot reload (Zig) is not on the roadmap — restart for code
+changes.
+
+| Layer | Owns | Reload mechanism |
+|-------|------|------------------|
+| zGameLib | Rebuild primitives (swapchain, decode), typed hooks | Consumer-driven — no reload policy |
+| Nexus Engine | ResourceDB, ReloadEventBus, scene tree | Event bus → subscribers re-bind / re-upload |
+| Crucible | File watcher, EditorHost API, play-in-editor | OS notifications → EditorHost methods |
+
+Details: [`theory/08-hot-reload-nexus-engine.md`](theory/08-hot-reload-nexus-engine.md) ·
+Crucible: [`theory/09-hot-reload-crucible.md`](theory/09-hot-reload-crucible.md) ·
+zGameLib: `libs/zGameLib/docs/theory/08-hot-reload.md`.
+
+---
+
 ## Comparison with other engines (at a glance)
 
 | | Godot / Redot | Unity | Unreal | Bevy | **Nexus** |
@@ -160,8 +200,9 @@ Bootstrap today — docs ahead of code (`src/main.zig` = zGameLib window loop).
 | **0.1.0** | `clear-color` | `NexusApp` + `RenderingServer` |
 | **0.2.0** | `textured-quad`, `node-hierarchy` | SceneNode tree |
 | **0.3.0–0.4.0** | `ecs-basic`, `hybrid-sync` | Flecs adapter + bridge |
+| **0.9.0** | `physics-ball` | Resource hot reload via `ResourceDB` + `ReloadEventBus` |
 | **1.0.0** | `minimal-game` | Shippable game without editor |
-| **1.1.0+** | Crucible (docs in-repo) | Editor via `EditorHost` |
-| **1.2.0** | i18n (TBD example) | Localization pipeline |
+| **1.1.0+** | Crucible (docs in-repo) | Editor-driven hot reload via `EditorHost.reimport` |
+| **1.2.0** | i18n (TBD example) | Localization pipeline + locale hot reload |
 
 Example ladder: [`examples/ladder.md`](examples/ladder.md) · Crucible docs: [`crucible/README.md`](crucible/README.md).

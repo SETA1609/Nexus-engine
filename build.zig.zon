@@ -5,7 +5,7 @@
     .minimum_zig_version = "0.16.0",
 
     .dependencies = .{
-        .zgame = .{ .path = "../zGameLib" },
+        .zgame = .{ .path = "libs/zGameLib" },
     },
 
     .paths = .{

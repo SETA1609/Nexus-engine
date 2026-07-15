@@ -31,6 +31,7 @@
 | `InputMap` / `DisplayServer` | Specified §4.3 | Not implemented | **0.5.0** |
 | `PhysicsServer` | Specified §4.3 | Not implemented | **0.9.0** |
 | `EditorHost` | Specified §9 | Not implemented | **1.0.0** freeze |
+| `ReloadEventBus` / resource hot reload | Specified §15 | Not implemented | **0.9.0** |
 | `zgame.zimgui` (via `-DimGui`) | Specified §13 | Not implemented | **1.1.0+** Crucible (zGameLib ships `zimgui` late) |
 | `LocalizationSystem` | Specified §14 | Not implemented | **1.2.0** |
 | PO → JSON (`build.zig`) | Specified §14.2 | Not implemented | **1.2.0** |
@@ -387,7 +388,7 @@ Aligned with [`ROADMAP.md`](ROADMAP.md) and [`examples/ladder.md`](examples/ladd
 | **0.4.0** | Same | Sync transforms | `hybrid-sync` |
 | **0.5.0–0.6.0** | Input, camera | Optional mirror | `simple-movement`, `camera` |
 | **0.7.0** | Spawner node | ECS-only particles | `particles` |
-| **0.9.0** | Rigid bodies | Physics authority | `physics-ball` |
+| **0.9.0** | Rigid bodies | Physics authority + resource hot reload (`ResourceDB`, `ReloadEventBus`) | `physics-ball` |
 | **1.0.0** | Authoring API frozen | Flecs default adapter | `minimal-game` |
 | **1.1.0+** | Crucible edits tree | Inspector reads bridge | Tier 3 repo |
 | **1.2.0** | Localized `Control` props | — | `LocalizationSystem` + `.po`→JSON |
@@ -396,6 +397,16 @@ Aligned with [`ROADMAP.md`](ROADMAP.md) and [`examples/ladder.md`](examples/ladd
 sampling on ECS; optional scripting host; RTL layout with Control theme system.
 
 **Never (by policy):** replace SceneNode tree with pure ECS for authoring.
+
+### Hot reload milestones
+
+| Version | Hot reload capability |
+|---------|----------------------|
+| **0.9.0** | Resource hot reload — file watcher → `ResourceDB.invalidate` → `ReloadEventBus` → GPU re-upload |
+| **1.0.0** | Play-in-editor scene fork (editor-free runtime) |
+| **1.1.0+** | Crucible editor-driven reimport, scene reload via `EditorHost` |
+| **1.2.0** | Locale hot reload — `.po` → JSON re-compile → `LocalizationSystem` re-resolve |
+| **Post-1.0** | Shader hot reload (`-Dhot-shaders`); diff-patch scene reload; code hot reload **not planned** |
 
 Performance expectations: [`theory/04-performance-considerations.md`](theory/04-performance-considerations.md).
 
@@ -414,6 +425,8 @@ Read [`theory/README.md`](theory/README.md), then:
 | 05 | [`05-resource-and-asset-management.md`](theory/05-resource-and-asset-management.md) | Resources vs zGameLib decode |
 | 06 | [`06-ui-and-localization.md`](theory/06-ui-and-localization.md) | Immediate-mode UI; batcher HUD |
 | 07 | [`07-localization-system.md`](theory/07-localization-system.md) | `LocalizationSystem`; `build.zig` PO→JSON pipeline |
+| 08 | [`08-hot-reload-nexus-engine.md`](theory/08-hot-reload-nexus-engine.md) | Engine-level hot reload (resources, locale, scenes) |
+| 09 | [`09-hot-reload-crucible.md`](theory/09-hot-reload-crucible.md) | Editor-driven hot reload (file watcher, play-in-editor) |
 
 Upstream foundation docs: [zGameLib theory](https://github.com/SETA1609/zGameLib/tree/main/docs/theory), [`zGameLib Reference`](https://github.com/SETA1609/zGameLib/blob/main/docs/reference.md), and [zGameLib ImGui (`-DimGui`)](../zGameLib/docs/imgui.md).
 
@@ -676,3 +689,60 @@ strings (`tr_n` at event time is acceptable).
 
 **Trade-offs:** build step required; no drop-in CSV hot-load in v1.2.0.  
 **Gains:** small player, O(1) lookup, PO vendor workflow, headless unit tests.
+
+---
+
+## 15. Hot Reload Strategy
+
+Nexus Engine takes an **incremental, data-first** approach to hot reload. Rather
+than attempting fragile Zig code hot swapping, we invest in reloading the data
+that game developers touch most often: **textures, meshes, scenes, strings, and
+shaders**.
+
+### Three-tier responsibility
+
+| Tier | Owns | Reload mechanism |
+|------|------|------------------|
+| **zGameLib** (Tier 1) | Rebuild primitives — `Swapchain.rebuild`, `Gpu.deinit/init`, stateless decode | Typed hooks consumed by Nexus; no reload policy |
+| **Nexus Engine** (Tier 2) | `ResourceDB.invalidate`, `ReloadEventBus`, scene re-instantiation | Event bus → subscribers re-bind or re-upload |
+| **Crucible** (Tier 3) | File watcher, `EditorHost.reimport`, play-in-editor | OS notifications → `EditorHost` methods |
+
+### Flow diagram
+
+```ascii
+File change / editor command
+        │
+        ▼
+ReloadEventBus.publish(event)
+        │
+        ├──► Resource subscribers: re-bind handles, re-upload GPU
+        ├──► Localization subscribers: re-resolve strings
+        ├──► Scene subscribers: re-instantiate or diff-patch
+        └──► Shader subscribers: rebuild pipelines (opt-in)
+```
+
+### What is reloadable
+
+| Data type | Mechanism | Ships | Difficulty |
+|-----------|-----------|-------|------------|
+| Textures, meshes, materials | `ResourceDB.invalidate` → GPU re-upload | **0.9.0** | Moderate — cache management + GPU sync |
+| Localization strings | `LocalizationSystem.setLocale` → ECS re-resolve | **1.2.0** | Easy — stateless string swap |
+| Scene `.fscn` files | Re-instantiate or diff-patch | **1.0.0+** | Hard — preserving runtime state |
+| Shaders (GLSL → SPIR-V) | Pipeline rebuild | **Post-1.0** | Hard — pipeline cache invalidation |
+| **Zig source code** | **Not supported** — restart for code changes | N/A | Very hard — Zig has no stable hot swap ABI |
+
+### Design principles
+
+1. **Data before code.** If it's in a file, we can hot-reload it. If it requires
+   a recompile, restart.
+2. **Explicit event bus.** All reloads flow through `ReloadEventBus` — no hidden
+   globals, no autoload singletons.
+3. **Editor drives, engine reacts.** Crucible detects changes and calls
+   `EditorHost`; Nexus Engine owns the reload logic.
+4. **Safe defaults.** Hot reload never crashes the running game. If a resource
+   fails to re-import, the old version stays in cache.
+
+Details:
+- [`theory/08-hot-reload-nexus-engine.md`](theory/08-hot-reload-nexus-engine.md) — engine reload internals
+- [`theory/09-hot-reload-crucible.md`](theory/09-hot-reload-crucible.md) — editor-driven reload
+- `libs/zGameLib/docs/theory/08-hot-reload.md` — Tier 1 primitives

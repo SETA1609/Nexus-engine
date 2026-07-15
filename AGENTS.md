@@ -12,11 +12,11 @@ Requires Zig 0.16+ (pinned in CI: `mlugg/setup-zig@v2` with `version: 0.16.0`).
 
 ## Dependency: zGameLib
 
-The only dependency is `zgame` via local path `../zGameLib` in `build.zig.zon`.
-The sibling repo must exist at that path. zGameLib itself has git submodules that must be initialized:
+The only dependency is `zgame` via `libs/zGameLib` — a Git submodule in `libs/`.
+After cloning this repo, initialize submodules:
 
 ```sh
-cd ../zGameLib && git submodule update --init --recursive
+git submodule update --init --recursive
 ```
 
 ## Architecture
