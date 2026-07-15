@@ -67,7 +67,7 @@ in the `nexus-engine` artifact. Design docs: [`docs/examples/`](examples/).
 | **0.9.0** | *World* | [`physics-ball`](examples/physics-ball.md) | `PhysicsServer` + bridge; fixed timestep |
 | **1.0.0** | *Alpha* | [`minimal-game`](examples/minimal-game.md) | Ship a small game without editor; `EditorHost` v1 frozen |
 | **1.1.0+** | *Crucible* | (editor — docs in-repo) | Detachable editor; play mode; inspectors |
-| **1.2.0** | *i18n* | TBD | Data-oriented localization; `.po`→JSON; API detailed at implementation |
+| **1.2.0** | *i18n* | [`i18n-demo`](examples/) (planned) | `LocalizationSystem`; `.po`→JSON in `build.zig` |
 
 ---
 
@@ -312,22 +312,25 @@ git repo may be created later; `EditorHost` remains in Nexus.
 
 ### v1.2.0 — Localization
 
-**Decisions (fixed now):** Nexus-only; data-oriented; `.po` source → build-time JSON/binary;
-lightweight custom runtime — no ICU.
+**Decisions (fixed):** Nexus-only; data-oriented; `.po` → JSON via **`build.zig`**;
+`LocalizationSystem` query API with pluralization; ECS resolve on locale change; no ICU.
 
-**Implementation** (API/schema finalized during this milestone)
+**Implementation**
 
-- [ ] `LocalizationSystem` on `NexusContext` — query compiled locale tables
-- [ ] `nexus-locale` build tool — `.po` in `locale/src/` → `res://locale/<lang>.json`
-- [ ] Runtime loads compiled data only
-- [ ] `project.nexus` default locale + fallbacks
-- [ ] Crucible: PO edit/preview (workflow)
-- [ ] **Proving example** — TBD (`i18n-demo` or `minimal-game` locale switch)
+- [ ] `build/compile_locale.zig` — PO → JSON step integrated in **`build.zig`**
+- [ ] `LocalizationSystem` on `NexusContext` — `lookup`, `lookupPlural`, `setLocale`
+- [ ] `CompiledLocaleData` resource — loaded from `res://locale/<tag>.json`
+- [ ] `tr()` / `tr_n()` sugar on `NexusContext`
+- [ ] ECS `LocalizedText` + resolve pass on locale change
+- [ ] `project.nexus` default locale + `locale_fallbacks`
+- [ ] Crucible: `.po` edit/preview workflow
+- [ ] **Proving example:** `i18n-demo` (or locale switch in `minimal-game`)
 
 **Documentation**
 
-- [ ] `Nexus_Reference.md` §14 — finalize and mark **shipped**
-- [ ] [`theory/06-ui-and-localization.md`](theory/06-ui-and-localization.md) — implementation audit
+- [x] `Nexus_Reference.md` §14 — runtime + build pipeline specified
+- [x] [`theory/07-localization-system.md`](theory/07-localization-system.md)
+- [ ] Mark §14 **shipped** when code lands
 
 **Not in zGameLib:** no i18n runtime; UTF-8 I/O only.
 

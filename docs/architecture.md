@@ -44,7 +44,7 @@ Nexus is **just another consumer** of zGameLib — game code can always reach `z
 | **UI** | **Opinionated immediate mode** for tools (Casey Muratori style); **semi-retained only when necessary** (scene `Control` nodes for serialization); in-game draw via zGameLib **2D batcher** |
 | **ImGui** | Optional in zGameLib — **toward the end** of Tier 1 roadmap; **required** in Crucible when editor ships |
 | **Examples** | Every version ≥0.1.0 ships **implementation + docs + proving example** |
-| **Localization** | Lives in Nexus; **data-oriented**; `.po` → compile → fast runtime format; **detailed API TBD** before v1.2.0 |
+| **Localization** | Nexus-only; `.po` → **`build.zig`** → JSON; `LocalizationSystem` query API ([07](theory/07-localization-system.md)) |
 | **zGameLib scope** | Minimal core; optional modules (ImGui, **fonts after ImGui**) land late |
 | **Crucible** | Documentation in **this repository** for now; optional separate repo later |
 
@@ -89,10 +89,9 @@ localization in scene files genuinely helps — not as a default widget toolkit.
 
 - **Tier:** Nexus only — not zGameLib.
 - **Authoring:** translators edit `.po` files.
-- **Build:** compile to JSON or a small binary (fast load).
-- **Runtime:** lightweight custom system; systems **query** compiled tables (data-oriented).
-- **Detail:** schema and public API finalized during v1.2.0 implementation — see
-  [`theory/06-ui-and-localization.md`](theory/06-ui-and-localization.md) for direction.
+- **Build:** PO → JSON inside **`build.zig`** (`build/compile_locale.zig`).
+- **Runtime:** `LocalizationSystem` — `lookup`, pluralization, `tr()` sugar; ECS resolve on locale change.
+- **Detail:** [`theory/07-localization-system.md`](theory/07-localization-system.md).
 
 ---
 

@@ -133,147 +133,12 @@ Vulkan: ImGui pass uses **load-op LOAD** after scene render; same `FrameRing` sl
 
 ---
 
-## Part B — Data-oriented localization
+## Part B — Localization (pointer)
 
-### Why Nexus Engine, not zGameLib
+Localization is **Nexus-only**, data-oriented, `.po` → JSON via **`build.zig`**, runtime
+`LocalizationSystem` query API. Full design:
 
-| Concern | zGameLib | Nexus |
-|---------|----------|-------|
-| UTF-8 / file read | ✅ generic I/O | consumes |
-| `.po` authoring | ❌ | ✅ `locale/src/` |
-| `.po` → JSON compile | ❌ | ✅ `nexus-locale` build step |
-| Runtime lookup tables | ❌ | ✅ `LocalizationSystem` |
-| `tr()` in gameplay | ❌ | ✅ thin helper over lookup |
-
-**Test:** Does a clear-color demo need locales? No → not Tier 1.
-
-### Pipeline: `.po` for humans, JSON for the runtime
-
-```ascii
-AUTHORING                    BUILD                         RUNTIME (data-oriented)
-─────────                    ─────                         ─────────────────────
-locale/src/messages.pot      nexus-locale                  LocalizationSystem
-locale/src/de/messages.po ─► res://locale/de.json    ─►   CompiledLocaleData (resource)
-locale/src/en/messages.po    res://locale/en.json          flat entries + plural metadata
-                                                           systems query by key — O(1)
-```
-
-| Stage | Format | Why |
-|-------|--------|-----|
-| **Source** | GNU `.po` | Poedit, Crowdin, `msgfmt`, `msgid_plural` — best translator tooling |
-| **Shipped** | Compact **JSON** (optional `.nloc` binary later) | mmap-friendly; fixed schema; no gettext lexer in player |
-| **Runtime** | **`LocalizationSystem`** + **`CompiledLocaleData`** | Data tables + query functions — not ICU / not i18next |
-
-**Why not i18next JSON as source?** Web-centric nesting; weak CAT-tool support. We may *export*
-i18next JSON; we do not author in it.
-
-**Why not ICU?** Collation/calendars/break iterators are unrelated to game `tr()` lookup. Add
-slim formatters in Nexus only when a server needs them.
-
-### Data-oriented direction (API TBD at v1.2.0)
-
-Localization is **state + tables**, not a deep object hierarchy. Gameplay systems, ECS phases,
-and `Control` layout code will **query** compiled data. Exact types and function names are
-**not frozen** in documentation — they will be specified when v1.2.0 implementation starts.
-
-```ascii
-NexusContext
-  └── localization: LocalizationSystem
-        ├── active_locale: LocaleId
-        ├── fallback_chain: []LocaleId
-        └── tables: []CompiledLocaleData    // loaded resources, refcounted
-
-CompiledLocaleData (resource)
-  ├── locale: "de"
-  ├── plural_rule: baked from PO header
-  └── entries: flat array { key, ctxt?, singular, plurals[] }
-```
-
-**Design intent (illustrative):**
-
-```zig
-// Shapes TBD — illustrates query model only
-const play = ctx.localization.resolve("UI_PLAY") orelse "UI_PLAY";
-```
-
-- **ECS** — resolve on locale change, not per frame.
-- **Build** — `nexus-locale` validates `.po`, emits JSON under `res://locale/`.
-- **Sugar** — Godot-style `tr()` helpers likely; names frozen at implementation.
-
-**Example compiled JSON:**
-
-```json
-{
-  "version": 1,
-  "locale": "de",
-  "plural_rule": "nplurals=2; plural=(n != 1);",
-  "entries": [
-    { "key": "UI_PLAY", "s": "Spielen" },
-    { "key": "ITEM_COUNT", "p": ["%d Gegenstand", "%d Gegenstände"] }
-  ]
-}
-```
-
----
-
-## Part C — Comparison with other engines
-
-### Godot / Redot (integrated)
-
-| Aspect | Godot / Redot | Nexus |
-|--------|---------------|-------|
-| Editor UI | Custom retained toolkit in-engine | Dear ImGui in **detachable** Crucible |
-| Game UI | `Control` node tree | `Control` + **2D batcher** (same goal, explicit draw path) |
-| i18n API | `TranslationServer` singleton | `LocalizationSystem` (API TBD) + familiar `tr()` sugar |
-| i18n source | CSV/PO often loaded at runtime | `.po` → compile → JSON only at runtime |
-| Foundation | Monolithic engine binary | zGameLib unaware of locales |
-
-**Learn from Godot:** `tr()` ergonomics and locale fallback chain — keep the developer experience.  
-**Avoid:** parsing translation formats in shipping players; editor+runtime UI in one distribution.
-
-### Unity (data-driven localization)
-
-| Aspect | Unity | Nexus |
-|--------|-------|-------|
-| Authoring | Localization tables / string collections as **assets** | `.po` files (vendor-friendly) |
-| Runtime | `LocalizedString` references table entries | `CompiledLocaleData` + key lookup |
-| Build | Asset bundles include string tables | `nexus-locale` emits `res://locale/*.json` |
-
-**Learn from Unity:** treat strings as **data assets** referenced by key, not scattered literals.  
-**Our twist:** PO source for translators; compiled flat tables for fast cold start.
-
-### Unreal (build-time processing)
-
-| Aspect | Unreal | Nexus |
-|--------|--------|-------|
-| Source | `LOCTEXT` namespaces + gather | `.po` + optional `xgettext` later |
-| Pipeline | Gather → compile → staged `.locres` | `nexus-locale` → JSON (or `.nloc`) |
-| Runtime | `FText` / `NSLOCTEXT` lookup | `LocalizationSystem.lookup` — explicit, no `FText` stack |
-
-**Learn from Unreal:** **compile before ship** — never parse authoring formats in the player.  
-**Our twist:** smaller runtime — JSON/hash lookup without full `FText` internationalization.
-
-### Bevy / modern ECS engines
-
-| Aspect | Bevy (ecosystem) | Nexus hybrid |
-|--------|------------------|--------------|
-| i18n | Community crates (`bevy_localization`, asset-based JSON) | First-party `LocalizationSystem` in Tier 2 |
-| UI | `bevy_ui` retained nodes | SceneNode `Control` + batcher |
-| Data orientation | Components + asset loaders | ECS queries + compiled locale resources |
-
-**Learn from Bevy:** loaders produce **assets**; systems read immutable data per locale.  
-**Our twist:** retained SceneNode authoring + optional ECS mirror — localization sits beside
-`ResourceDB`, queryable from both node and system code.
-
-### Summary trade-offs
-
-| We gain | We give up |
-|---------|------------|
-| Modular tiers; no ImGui in player builds | No single all-in-one SDK download |
-| Fast runtime (compiled JSON, flat lookup) | Explicit compile step on export |
-| Professional PO translator workflow | No runtime CSV/PO hot-load in v1.2.0 |
-| Headless tests of `LocalizationSystem` | Godot-style "drop CSV in res://" magic |
-| Immediate-mode editor velocity (ImGui) | Custom Godot-style editor widget library |
+**→ [07 — LocalizationSystem](07-localization-system.md)** (build pipeline, ECS, engine comparisons)
 
 ---
 
@@ -284,7 +149,7 @@ const play = ctx.localization.resolve("UI_PLAY") orelse "UI_PLAY";
 | 2D batcher / glyphs | ✅ planned | `RenderingServer` | — |
 | `zimgui` | optional `-DimGui` | debug overlay only | **required** |
 | `LocalizationSystem` | ❌ | ✅ query API | PO workflow + preview |
-| `nexus-locale` | ❌ | ✅ build step | triggers compile |
+| PO → JSON in `build.zig` | ❌ | ✅ compile step | triggers rebuild |
 | In-game `Control` UI | ❌ | ✅ batcher-backed | edits scene |
 
 ---
@@ -295,4 +160,5 @@ const play = ctx.localization.resolve("UI_PLAY") orelse "UI_PLAY";
 - **Roadmap** — [`../ROADMAP.md`](../ROADMAP.md) (v0.8.0, v1.1.0+, v1.2.0)
 - **zGameLib ImGui** — [`../../zGameLib/docs/imgui.md`](../../zGameLib/docs/imgui.md)
 - **debug-ui** — [`../examples/debug-ui.md`](../examples/debug-ui.md)
+- **Localization** — [07](07-localization-system.md)
 - **Resources** — [05](05-resource-and-asset-management.md)

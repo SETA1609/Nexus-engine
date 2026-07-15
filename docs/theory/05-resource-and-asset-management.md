@@ -249,7 +249,7 @@ Weak refs for caches (RenderingServer texture cache) avoid cycles.
 | Full import stack in editor | Link-editor UI + Nexus importers |
 | `ResourceFormatLoader` C++ | Zig vtables in Nexus Engine |
 | Assimp | glTF + uFBX via zGameLib |
-| In-engine translation | Nexus-only; `.po` → compile → query (API TBD) — [06](06-ui-and-localization.md) (v1.2.0) |
+| In-engine translation | `.po` → `build.zig` → JSON; `LocalizationSystem` — [07](07-localization-system.md) (v1.2.0) |
 
 ---
 

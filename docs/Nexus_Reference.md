@@ -16,7 +16,7 @@
 | **UI** | **Immediate mode** for tools (Crucible ImGui, optional debug); **semi-retained** scene UI only when necessary; in-game draw via zGameLib **2D batcher** |
 | **ImGui in zGameLib** | **Optional**, implemented **toward the end** of Tier 1 roadmap — not a core dependency |
 | **Examples** | Each version ships **≥1 proving example** (`zig build <name>`) — see [`examples/ladder.md`](examples/ladder.md) |
-| **Localization** | Nexus-only; data-oriented; `.po` → build-time JSON/binary; runtime API **detailed design TBD** (v1.2.0) |
+| **Localization** | Nexus-only; `.po` → **`build.zig`** → JSON; `LocalizationSystem` query API (v1.2.0) |
 | **Crucible** | Docs in [`crucible/README.md`](crucible/README.md); separate repo **may** spin out later |
 | **zGameLib** | Minimal core; optional modules late; **fonts after ImGui** |
 
@@ -32,7 +32,8 @@
 | `PhysicsServer` | Specified §4.3 | Not implemented | **0.9.0** |
 | `EditorHost` | Specified §9 | Not implemented | **1.0.0** freeze |
 | `zgame.zimgui` (via `-DimGui`) | Specified §13 | Not implemented | **1.1.0+** Crucible (zGameLib ships `zimgui` late) |
-| `LocalizationSystem` | Specified §14 (high-level) | Not implemented | **1.2.0** — API TBD |
+| `LocalizationSystem` | Specified §14 | Not implemented | **1.2.0** |
+| PO → JSON (`build.zig`) | Specified §14.2 | Not implemented | **1.2.0** |
 
 **Examples:** design docs in [`docs/examples/`](examples/); source lands per version column.
 
@@ -331,7 +332,7 @@ See [`theory/03-systems-and-update-loop.md`](theory/03-systems-and-update-loop.m
 - Input **actions** (raw events are Tier 1)
 - Scripting host, project settings
 - **`LocalizationSystem`** — data-oriented locale tables; `lookup()` / `tr()`; loads compiled JSON from `res://locale/`
-- **`nexus-locale` build step** — `.po` (translator source) → JSON at export time
+- **PO → JSON compile step** in **`build.zig`** — `.po` source → `zig-out/locale/*.json`
 - Semi-retained in-game UI (`Control` nodes, future) — only where scene serialization/layout requires it; drawn via batcher
 
 **Belongs in Crucible (Tier 3) only:**
@@ -411,7 +412,8 @@ Read [`theory/README.md`](theory/README.md), then:
 | 03 | [`03-systems-and-update-loop.md`](theory/03-systems-and-update-loop.md) | Tick phases; node + ECS ordering |
 | 04 | [`04-performance-considerations.md`](theory/04-performance-considerations.md) | When hybrid wins; pitfalls |
 | 05 | [`05-resource-and-asset-management.md`](theory/05-resource-and-asset-management.md) | Resources vs zGameLib decode |
-| 06 | [`06-ui-and-localization.md`](theory/06-ui-and-localization.md) | Immediate-mode UI; batcher HUD; `LocalizationSystem` |
+| 06 | [`06-ui-and-localization.md`](theory/06-ui-and-localization.md) | Immediate-mode UI; batcher HUD |
+| 07 | [`07-localization-system.md`](theory/07-localization-system.md) | `LocalizationSystem`; `build.zig` PO→JSON pipeline |
 
 Upstream foundation docs: [zGameLib theory](https://github.com/SETA1609/zGameLib/tree/main/docs/theory), [`zGameLib Reference`](https://github.com/SETA1609/zGameLib/blob/main/docs/reference.md), and [zGameLib ImGui (`-DimGui`)](../zGameLib/docs/imgui.md).
 
@@ -532,63 +534,145 @@ ctx.rendering.drawText2d(batch, label, .{ .x = 16, .y = 16 });
 
 ---
 
-## 14. Localization (high level — data-oriented)
+## 14. LocalizationSystem
 
-Localization lives in **Nexus (Tier 2)**, not zGameLib. Direction: **data-oriented** compiled
-tables that gameplay systems query — not ICU, not i18next, not runtime `.po` parsing.
+Localization lives in **Nexus (Tier 2)**, not zGameLib. It is **data-oriented**: translators
+author [GNU `.po`](https://www.gnu.org/software/gettext/manual/html_node/PO-Files.html) files;
+**`build.zig`** compiles them to JSON; runtime uses a lightweight **`LocalizationSystem`** that
+ECS systems and `Control` nodes query — not ICU, not i18next, and not Godot's monolithic
+[`TranslationServer`](https://docs.godotengine.org/en/stable/classes/class_translationserver.html).
 
-Ship target: **v1.2.0**. **Detailed API** (`LocalizationSystem` schema, `tr()` helpers, ECS
-integration) will be specified during implementation — this section records **decisions**, not
-final signatures.
+Ship target: **v1.2.0**. Deep dive: [`theory/07-localization-system.md`](theory/07-localization-system.md).
 
-### Pipeline
+### 14.1 End-to-end pipeline
 
 ```ascii
-locale/src/*.po  ──►  nexus-locale (build)  ──►  res://locale/*.json
-                                                          │
-                                                          ▼
-                                              LocalizationSystem.lookup(key)
-                                              ECS systems · Control nodes · tr()
+locale/src/*.po  ──►  build.zig (CompileLocaleStep)  ──►  zig-out/locale/*.json
+                                                                  │
+                                    ResourceLoader ◄──────────────┘
+                                          │
+                                          ▼
+                               LocalizationSystem.lookup / lookupPlural
+                                          │
+                          ECS resolve pass · Control nodes · tr() / tr_n()
 ```
 
-| Stage | Format | Role |
-|-------|--------|------|
-| Authoring | `.po` / `.pot` | Translators, Crucible PO workflow |
-| Compile | `nexus-locale` | Validate PO → emit JSON (optional `.nloc` later) |
-| Runtime | `CompiledLocaleData` resource | Flat entries; plural rules baked |
-| Query | `LocalizationSystem` | `lookup()`, `lookupPlural()`; `tr()` helper |
+| Stage | Where | Format |
+|-------|-------|--------|
+| Authoring | `locale/src/` (VCS) | `.po` / `.pot` — Poedit, Crowdin, Lokalise |
+| Compile | **`build.zig`** + `build/compile_locale.zig` | Validates PO → JSON schema v1 |
+| Shipped | `res://locale/` (export) | JSON (optional `.nloc` binary later) |
+| Runtime | `NexusContext.localization` | `LocalizationSystem` + `CompiledLocaleData` |
 
-**Why not in zGameLib?** Locales assume `project.nexus`, scene keys, and `ResourceDB` — engine
-concepts. zGameLib keeps UTF-8 I/O only.
+**Why compile in `build.zig`?** One integrated pipeline — `zig build`, CI, and local dev all
+produce the same JSON. No separate tool to forget. Matches [Unreal's compile-before-ship](https://docs.unrealengine.com/en-US/ProductionPipelines/Localization/LocalizationOverview/)
+model with Zig-native build graph integration.
 
-**Why `.po` → JSON?** PO for CAT tooling; JSON (or binary) for mmap-friendly O(1) cold start.
-No gettext parser, ICU, or i18next in the player.
+**Why not in zGameLib?** Locales need `project.nexus`, scene keys, and `ResourceDB` — engine
+concepts. Tier 1 keeps UTF-8 I/O only.
 
-### Direction (API TBD)
+### 14.2 Build pipeline (`build.zig`)
 
-- **Query model** — systems call into `LocalizationSystem` (or read pre-resolved string handles).
-- **Godot familiarity** — expect `tr()`-style helpers; exact names frozen at v1.2.0.
-- **ECS** — resolve strings on locale change, not every frame (data-oriented).
-- **Crucible** — `.po` editing workflow; compile step stays in Nexus build/export.
-
-Illustrative direction only:
+The PO → JSON step is a **first-class build step**, not a post-export script.
 
 ```zig
-// Pseudocode — shapes may change before v1.2.0 ships
-const text = ctx.localization.resolve("UI_PLAY") orelse "UI_PLAY";
+// Pseudocode — build.zig (v1.2.0)
+const compile_locale = @import("build/compile_locale.zig");
+
+pub fn build(b: *std.Build) void {
+    const locale_step = compile_locale.addPoToJsonStep(b, .{
+        .po_root = "locale/src",
+        .output_dir = b.pathJoin(&.{ b.install_path, "locale" }),
+    });
+
+    const tests = b.addTest(.{ … });
+    tests.step.dependOn(locale_step);
+
+    const i18n_demo = b.addExecutable(.{ .name = "i18n-demo", … });
+    i18n_demo.step.dependOn(locale_step);
+}
 ```
 
-### vs other engines (localization)
+| Build step behavior | Detail |
+|-------------------|--------|
+| Input | All `locale/src/**.po` |
+| Output | `zig-out/locale/<tag>.json` per locale |
+| Failure | Invalid PO / missing `msgstr` → **non-zero exit** (CI gate) |
+| Incremental | Re-run when `.po` files change |
 
-| Engine | Model | Nexus |
-|--------|-------|-------|
-| **Godot / Redot** | `TranslationServer`; CSV/PO at runtime | Compile first; `LocalizationSystem` query |
-| **Unity** | Localization tables as assets; `LocalizedString` refs | `.po` source → compiled JSON assets |
-| **Unreal** | `LOCTEXT` gather → `.locres` compile | `nexus-locale` → JSON; explicit lookup, no `FText` stack |
-| **Bevy** | Community JSON asset loaders | First-party Tier 2 system beside `ResourceDB` |
+**Compiled JSON (schema v1):**
 
-**Learn:** Unity's data-driven keys, Unreal's compile-before-ship, Bevy's immutable locale assets.  
-**Avoid:** Godot's runtime format parsing; ICU weight; monolithic editor+i18n coupling.
+```json
+{
+  "version": 1,
+  "locale": "de",
+  "plural_rule": "nplurals=2; plural=(n != 1);",
+  "entries": [
+    { "key": "UI_PLAY", "s": "Spielen" },
+    { "key": "ITEM_COUNT", "p": ["%d Gegenstand", "%d Gegenstände"] }
+  ]
+}
+```
 
-**Trade-offs:** explicit export compile step; no magic CSV drop-in at runtime in v1.2.0.  
-**Gains:** small player, fast lookup, PO vendor workflow, headless unit tests without GPU.
+### 14.3 Runtime: `LocalizationSystem`
+
+Lightweight **query-based** service on `NexusContext` — explicit field, not a hidden global.
+
+```zig
+// Public contract (nexus/i18n/) — illustrative
+pub const LocalizationSystem = struct {
+    pub fn lookup(self: *const LocalizationSystem, key: []const u8) ?[]const u8,
+    pub fn lookupPlural(self: *const LocalizationSystem, key: []const u8, n: i32) ?[]const u8,
+    pub fn setLocale(self: *LocalizationSystem, tag: []const u8) Error!void,
+};
+
+pub fn tr(ctx: *NexusContext, key: []const u8) []const u8 {
+    return ctx.localization.lookup(key) orelse key;
+}
+
+pub fn tr_n(ctx: *NexusContext, key: []const u8, n: i32) []const u8 {
+    return ctx.localization.lookupPlural(key, n) orelse key;
+}
+```
+
+| Capability | v1.2.0 |
+|------------|--------|
+| Singular lookup | `lookup` / `tr` |
+| Pluralization | `lookupPlural` / `tr_n` — rule from PO `Plural-Forms`, baked at compile |
+| Fallback chain | From `project.nexus` (`locale_fallbacks`) |
+| Missing key | Returns key; dev warning optional |
+| ICU / calendars | **Out of scope** v1.2.0 |
+
+### 14.4 ECS usage
+
+Systems **query** resolved data — resolve on **locale change**, not every frame.
+
+```zig
+// Resolve pass (locale change only)
+fn resolveLocalizedUi(world: *World, loc: *const LocalizationSystem) void {
+    // LocalizedText { key, resolved } components updated once
+}
+
+// Hot path — read resolved slice
+fn drawHud(item: LocalizedText) void {
+    drawText(item.resolved orelse item.key);
+}
+```
+
+Particle/physics systems do not touch `LocalizationSystem` unless displaying dynamic counted
+strings (`tr_n` at event time is acceptable).
+
+### 14.5 Comparison with other engines
+
+| Engine | Approach | Nexus difference |
+|--------|----------|------------------|
+| [**Godot**](https://docs.godotengine.org/en/stable/tutorials/i18n/internationalizing_games.html) | `TranslationServer` loads CSV/PO at **runtime** | Compile in **`build.zig`**; query-only runtime |
+| [**Unity**](https://docs.unity3d.com/Packages/com.unity.localization@1.0/manual/index.html) | String Table assets + `LocalizedString` refs | `.po` for translators → compiled JSON assets |
+| [**Unreal**](https://docs.unrealengine.com/en-US/ProductionPipelines/Localization/LocalizationOverview/) | Gather → `.locres`; `FText` stack | Flat JSON + `lookup` — no `FText` weight |
+| **Bevy** | Community JSON locale assets | First-party beside `ResourceDB`; hybrid node + ECS |
+
+**Learn:** Unity's data-driven keys; Unreal's compile-before-ship; Godot's `tr()` UX.  
+**Avoid:** Godot runtime PO parsing; ICU; monolithic editor+i18n in one binary.
+
+**Trade-offs:** build step required; no drop-in CSV hot-load in v1.2.0.  
+**Gains:** small player, O(1) lookup, PO vendor workflow, headless unit tests.

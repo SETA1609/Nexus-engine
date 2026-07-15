@@ -100,17 +100,18 @@ consumes:
       module: nexus.i18n
       role: LocalizationSystem — data-oriented lookup, CompiledLocaleData, tr() sugar
       policy: >
-        Engine-only; not zGameLib. .po source → nexus-locale → JSON at build.
+        Engine-only; not zGameLib. .po → JSON via build.zig (compile_locale.zig).
         Systems query flat tables; no ICU, no i18next, no runtime gettext parser.
       ships_in: "1.2.0"
 
-    - id: nexus_locale
+    - id: compile_locale
       package: (Nexus-native)
       status: planned
       phase: 4
-      kind: build_tool
-      role: .po → res://locale/<lang>.json compile step
-      policy: Build-time only; not linked into player unless -Ddev_tools
+      kind: build_step
+      path: build/compile_locale.zig
+      role: PO → JSON — integrated in build.zig, outputs zig-out/locale/
+      policy: Build-time only; invalid PO fails zig build
       ships_in: "1.2.0"
 
   planned_transitive_via_zgame:

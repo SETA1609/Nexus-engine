@@ -23,6 +23,16 @@ tree:
     status: shipped
     description: Build entry — `nexus` module + `nexus-engine` executable
 
+  - path: build/
+    type: directory
+    status: planned
+    description: build.zig helpers (v1.2.0)
+    children:
+      - path: compile_locale.zig
+        type: file
+        status: planned
+        description: PO → JSON compile step for LocalizationSystem
+
   - path: build.zig.zon
     type: file
     status: shipped
@@ -94,7 +104,7 @@ tree:
           - path: i18n/
             type: directory
             status: planned
-            description: LocalizationSystem, CompiledLocaleData, nexus-locale (v1.2.0)
+            description: LocalizationSystem, CompiledLocaleData (v1.2.0)
       - path: c/
         type: directory
         status: legacy
@@ -217,12 +227,16 @@ tree:
       - path: theory/
         type: directory
         status: shipped
-        description: Design rationale (00–06)
+        description: Design rationale (00–07)
         children:
           - path: 06-ui-and-localization.md
             type: file
             status: shipped
-            description: Immediate-mode UI; batcher HUD; LocalizationSystem
+            description: Immediate-mode UI; batcher HUD
+          - path: 07-localization-system.md
+            type: file
+            status: shipped
+            description: LocalizationSystem; build.zig PO→JSON pipeline
       - path: examples/
         type: directory
         status: shipped

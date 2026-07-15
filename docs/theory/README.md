@@ -48,7 +48,7 @@ Read theory chapters as the matching **version** lands (see [`../ROADMAP.md`](..
 | 0.8.0 | `debug-ui` | [06](06-ui-and-localization.md) (ImGui tier split) |
 | 1.0.0 | `minimal-game` | Re-read 01–05 for API audit |
 | 1.1.0+ | Crucible (Tier 3) | [06](06-ui-and-localization.md) (editor ImGui required) |
-| 1.2.0 | i18n | [06](06-ui-and-localization.md) (`LocalizationSystem`, `.po`→JSON) |
+| 1.2.0 | i18n | [07](07-localization-system.md) (`LocalizationSystem`, `build.zig` pipeline) |
 
 Optional background: [00b](00-legacy-node-scene-architecture.md) — Redot legacy tree (clean-room reference).
 
@@ -65,7 +65,8 @@ Optional background: [00b](00-legacy-node-scene-architecture.md) — Redot legac
 | 03 | [`03-systems-and-update-loop.md`](03-systems-and-update-loop.md) | tick phases; node + ECS ordering |
 | 04 | [`04-performance-considerations.md`](04-performance-considerations.md) | scaling; when to mirror |
 | 05 | [`05-resource-and-asset-management.md`](05-resource-and-asset-management.md) | `Resource` vs zGameLib decode |
-| 06 | [`06-ui-and-localization.md`](06-ui-and-localization.md) | Immediate-mode tools; batcher HUD; `LocalizationSystem` |
+| 06 | [`06-ui-and-localization.md`](06-ui-and-localization.md) | Immediate-mode tools; batcher HUD |
+| 07 | [`07-localization-system.md`](07-localization-system.md) | `LocalizationSystem`; PO→JSON in `build.zig` |
 
 **API reference:** [`../Nexus_Reference.md`](../Nexus_Reference.md)  
 **Examples:** [`../examples/ladder.md`](../examples/ladder.md)  
