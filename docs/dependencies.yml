@@ -84,10 +84,34 @@ consumes:
       package: Dear ImGui
       status: planned
       phase: 3
-      tier: 3
-      role: Link-editor (Crucible) UI — not baked into engine binary
-      policy: Consumed by Crucible via zGameLib platform native handles
-      note: Prefer Tier 3 repo; Nexus exposes EditorHost only
+      via: zgame.zimgui
+      build_flag: "-DimGui=true"
+      role: Immediate-mode UI — optional foundation adapter; Crucible hard-dep
+      policy: >
+        zGameLib optional (-DimGui). Nexus debug-ui may enable it.
+        Crucible (Tier 3) always builds with -DimGui. Shipped games omit by default.
+      doc: ../zGameLib/docs/imgui.md
+      note: Nexus exposes EditorHost only; no ImGui in default engine artifact
+
+    - id: localization_system
+      package: (Nexus-native)
+      status: planned
+      phase: 4
+      module: nexus.i18n
+      role: LocalizationSystem — data-oriented lookup, CompiledLocaleData, tr() sugar
+      policy: >
+        Engine-only; not zGameLib. .po source → nexus-locale → JSON at build.
+        Systems query flat tables; no ICU, no i18next, no runtime gettext parser.
+      ships_in: "1.2.0"
+
+    - id: nexus_locale
+      package: (Nexus-native)
+      status: planned
+      phase: 4
+      kind: build_tool
+      role: .po → res://locale/<lang>.json compile step
+      policy: Build-time only; not linked into player unless -Ddev_tools
+      ships_in: "1.2.0"
 
   planned_transitive_via_zgame:
     - id: zaudio
@@ -120,6 +144,8 @@ consumed_by:
       - nexus.SceneTree
       - nexus.SceneNode
     policy: Does not link Flecs or zgame directly in preferred layout
+    hard_dependencies:
+      - zgame.zimgui  # Dear ImGui via -DimGui=true on Crucible builds
 
   - id: example_ladder
     name: Nexus-engine examples
