@@ -1,0 +1,16 @@
+.{
+    .name = .nexus_engine,
+    .version = "0.1.0",
+    .fingerprint = 0x6ab7b4f66d6d8248,
+    .minimum_zig_version = "0.16.0",
+
+    .dependencies = .{
+        .zgame = .{ .path = "../zGameLib" },
+    },
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

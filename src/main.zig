@@ -1,15 +1,21 @@
 const std = @import("std");
+const zgame = @import("zgame");
+const platform = zgame.platform;
 
-extern fn greetFromC() void;
-extern fn greetFromCpp() void;
+pub fn main() !void {
+    try platform.init(.{});
+    defer platform.deinit();
 
-// Zig 0.16 changed `main`: instead of grabbing globals like `std.io.getStdOut()`,
-// the runtime hands you an `Init` struct that carries the I/O interface.
-// `init.io` is what filesystem and stdio calls thread through.
-pub fn main(init: std.process.Init) !void {
-    const stdout = std.Io.File.stdout();
-    try stdout.writeStreamingAll(init.io, "🚀 Hello from Zig! \n");
-    greetFromC();
-    greetFromCpp();
-    try stdout.writeStreamingAll(init.io, "\n ✅ Success!\n");
+    const win = try platform.Window.create(.{
+        .title = "Nexus Engine",
+        .size = .{ .w = 1280, .h = 720 },
+        .renderer = .vulkan,
+    });
+    defer win.destroy();
+
+    std.debug.print("Nexus Engine — Tier 2 on zGameLib (Tier 1)\n", .{});
+
+    while (!win.shouldClose()) {
+        platform.pollAllEvents();
+    }
 }
