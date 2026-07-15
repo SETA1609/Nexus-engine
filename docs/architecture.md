@@ -73,6 +73,13 @@ The engine links `zgame` via `build.zig.zon` (local path `../zGameLib`).
 | Layout | [`file-tree.yml`](file-tree.yml) | [`../zGameLib/docs/file-tree.yml`](../zGameLib/docs/file-tree.yml) |
 | Dependencies | [`dependencies.yml`](dependencies.yml) | [`../zGameLib/docs/dependencies.yml`](../zGameLib/docs/dependencies.yml) |
 
+## macOS
+
+**In scope — not deferred.** Platform behavior follows Redot clean-room study
+(Cocoa/Metal via zGameLib). CI runs `zig build` on macOS VM runners; contributors
+own windowed/runtime validation on real hardware. Details:
+[`ROADMAP.md` § macOS](ROADMAP.md#macos-platform-policy).
+
 ## Current state
 
 Early bootstrap — documented architecture ahead of implementation:

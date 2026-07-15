@@ -6,6 +6,8 @@
 
 **Companion docs:** [`Nexus_Reference.md`](Nexus_Reference.md) · [`architecture.md`](architecture.md) · [`theory/README.md`](theory/README.md) · [`file-tree.yml`](file-tree.yml) · [`dependencies.yml`](dependencies.yml)
 
+**Tier 1 roadmap:** [`../zGameLib/docs/ROADMAP.md`](../zGameLib/docs/ROADMAP.md) (zGameLib `feat/engine-docs-ref`)
+
 > **Influenced by Casey Muratori's Handmade Hero philosophy** (via zGameLib): thin
 > platform layer, explicit control, replaceable pieces, raw access always available,
 > and no framework magic.
@@ -37,6 +39,19 @@ always drop through to `zgame.*`.
 - **Tier 1 boundary:** Window, events, GPU bring-up, decode — zGameLib. Nexus re-exports or wraps; it does not reimplement.
 - **Tier 2 boundary:** Scene tree, servers, resources, input *actions*, tick loop — Nexus Engine.
 - **Tier 3 boundary:** Dear ImGui, inspectors, gizmos — Link-editor (Crucible). Consumes `EditorHost`; not baked into the engine binary.
+
+### macOS platform policy
+
+macOS is **in scope — not deferred.** Tier 1 macOS behavior (Cocoa window,
+MoltenVK surface) follows **Redot clean-room study** — same hand-off model as
+zGameLib's platform + vulkan adapters; no Redot source in the tree.
+
+| Layer | macOS testing |
+|-------|----------------|
+| **CI (this repo)** | `zig build` on `macos-latest` runners (container/VM pipeline). `zig build run` may fail without a display — same class of limitation as headless Linux. |
+| **Contributors** | Windowed/runtime validation on **real macOS hardware** before macOS-specific PRs merge. |
+
+See also [zGameLib macOS policy](../zGameLib/docs/ROADMAP.md#macos-platform-policy).
 
 ---
 
@@ -187,7 +202,7 @@ Full contribution guide: `CONTRIBUTING.md` (to be added; mirrors zGameLib siblin
 | **Module layout** | Not started | No `src/nexus/`, no `nexus` Zig module; executable root is `main.zig` |
 | **ECS / scene / servers** | Documented only | No `SceneNode`, `EcsBridge`, `NexusApp`, `RenderingServer` in code |
 | **Tests** | None | No `zig build test` step |
-| **Build / CI** | Green | `zig build` passes; CI builds + runs on Ubuntu/macOS/Windows |
+| **Build / CI** | Green | `zig build` passes; CI matrix Ubuntu/macOS/Windows — macOS build in VM pipelines; runtime on Mac hardware by contributors (see below) |
 | **zGameLib (Tier 1)** | Partially ready | Platform, Vulkan, `Gpu`, `FrameRing` shipped; 2D batcher, `zassets`, `zaudio` still planned |
 | **Link-editor (Tier 3)** | Spec only | `EditorHost` in reference docs; no Crucible repo in workspace |
 
@@ -419,20 +434,42 @@ Crucible as a detachable Tier 3 consumer — not baked into the engine binary.
 
 ---
 
+## Tier 1 Alignment (zGameLib — July 2026)
+
+Nexus phases gate on the [zGameLib roadmap](../zGameLib/docs/ROADMAP.md). Summary of
+what Tier 1 is delivering and how it unblocks Forge:
+
+| zGameLib phase | Tier 1 deliverables | Nexus impact |
+|----------------|---------------------|--------------|
+| **Q3 2026 — Core completion** | Vulkan pipelines/descriptors stable; `zaudio` (miniaudio); optional `-DimGui`; glTF + image decode (`zassets`); 2D batcher/sprites/text; `hello-triangle`; zClip A1 `sprite-showcase` | Phase 0–1 rendering + textures; interim quad renderer only if batcher slips |
+| **Q4 2026 — Polish** | Diagnostics; textured examples; ImGui guide; KTX/Basis helpers; validation apps (snake → space-invaders); zClip A2 `gltf-viewer` | Phase 2 assets/meshes; richer sprite demos |
+| **2027 — Expansion** | Fonts; optional ENet; Tracy; full asset pipeline; zClip A3–A4; `zgame.App` | Phase 4 audio/fonts; Crucible may use `-DimGui`; alpha release prep |
+
+**zGameLib example tracks** (reference only — not shipped with Nexus):
+
+- **Track A:** modular capability rungs (`event-logger` → `app-demo`) — [`../zGameLib/docs/examples/ladder.md`](../zGameLib/docs/examples/ladder.md)
+- **Track B:** extended validation apps (snake, `hello-cube`, …)
+- **Track C:** zClip animation (`sprite-showcase`, `gltf-viewer`, …) — sprite path **shipped** at zClip v0.6
+
+---
+
 ## Dependency Map (zGameLib → Nexus)
 
-| Nexus needs | zGameLib status | Impact |
-|-------------|-----------------|--------|
-| Window + events | Shipped | Phase 0 ✓ |
-| `Gpu` + `FrameRing` | Shipped | Phase 1 ✓ |
-| 2D batcher / quad renderer | Planned (rung 2++) | Phase 1 — may need interim renderer |
-| Image decode → GPU | Partial / growing | Phase 1 textures |
-| glTF / mesh | zClip scaffold, glTF path growing | Phase 2 meshes |
-| `zassets` VFS | Planned (rung 5) | Phase 2 — Nexus `res://` can lead |
-| `zaudio` | Planned (rung 4) | Phase 4 audio server |
-| `zmath` | Planned | Phase 1 — use local math or zGameLib types as they land |
+| Nexus needs | zGameLib status | zGameLib phase | Nexus phase |
+|-------------|-----------------|----------------|-------------|
+| Window + events | Shipped | — | Phase 0 ✓ |
+| `Gpu` + `FrameRing` | Shipped | — | Phase 0–1 ✓ |
+| 2D batcher / sprites / text | Planned Q3 2026 | Phase 1 | Phase 1 — interim `RenderingServer` quad if needed |
+| Image decode → GPU | Planned Q3 2026 (`zassets`) | Phase 1 | Phase 1 textures |
+| glTF / mesh | Partial (zClip skeletal in progress) | Phase 1–2 | Phase 2 meshes |
+| `zassets` VFS | Planned Q3–Q4 2026 | Phase 1–2 | Phase 2 — Nexus `res://` may lead |
+| `zaudio` / miniaudio | Planned Q3 2026 | Phase 1 | Phase 4 `AudioServer` (can start earlier if zaudio lands) |
+| `zclip` sprite-atlas | Shipped v0.6 | Phase 1 | Phase 2 animation nodes |
+| Dear ImGui (`-DimGui`) | Planned Q3 2026 | Phase 1 | Phase 3 Crucible (Tier 3) |
+| `zmath` | Planned | Phase 1+ | Phase 1 transforms |
+| `zgame.App` harness | Stub → 2027 | Phase 3 | Optional — Nexus keeps `NexusApp` |
 
-Nexus should not block on full zGameLib v1.0 — but Phase 1 rendering and Phase 2 assets need explicit Tier 1 rungs or thin Nexus-side stopgaps.
+Nexus should not block on full zGameLib v1.0 — but Phase 1 rendering and Phase 2 assets need explicit Tier 1 Phase 1 rungs or thin Nexus-side stopgaps.
 
 ---
 

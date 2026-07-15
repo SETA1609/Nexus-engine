@@ -33,7 +33,7 @@ None exist. No `zig build test` step. Add tests via `b.addTest(...)` in `build.z
 
 ## CI
 
-Single workflow (`.github/workflows/build.yml`): `zig build` + `zig build run` on ubuntu/macos/windows. The `run` step requires a display — will fail in headless CI.
+Single workflow (`.github/workflows/build.yml`): `zig build` + `zig build run` on ubuntu/macos/windows. The `run` step requires a display — will fail in headless CI. **macOS is in scope** (Redot-informed platform path): CI runs builds in VM pipelines; contributors validate windowed runtime on real Mac hardware before macOS-specific changes land.
 
 ## Stale docs
 

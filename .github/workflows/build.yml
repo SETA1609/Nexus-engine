@@ -10,6 +10,8 @@ jobs:
   build:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    # macOS in scope (Redot-informed zGameLib path): CI = VM build pipeline.
+    # Windowed `zig build run` on Mac — contributor-verified on real hardware.
     strategy:
       fail-fast: false
       matrix:

@@ -49,7 +49,7 @@ consumes:
       via: zgame
       status: partial
       module: zgame.zclip
-      role: Animation data (future AnimationServer)
+      role: Animation data (sprite-atlas v0.6 shipped; skeletal in progress)
 
     - id: sdl3
       via: zgame → platform
@@ -154,3 +154,8 @@ policy:
   no_gpl_lgpl_agpl: true
   no_flecs_in_public_api: true
   no_redot_godot_source_copy: true
+  macos:
+    in_scope: true
+    behavior_source: Redot clean-room study (Cocoa/Metal hand-off — no Redot code ships)
+    maintainer_ci: build/compile in container VM pipelines (macos-latest)
+    contributor_testing: runtime and display validation on real macOS hardware required for macOS-specific PRs

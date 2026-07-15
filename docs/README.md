@@ -25,7 +25,7 @@ alias for the same engine — use either name; docs standardize on **Nexus Engin
 | 04 | [`theory/04-performance-considerations.md`](theory/04-performance-considerations.md) | Scaling vs pure nodes |
 | 05 | [`theory/05-resource-and-asset-management.md`](theory/05-resource-and-asset-management.md) | Resources vs zGameLib decode |
 
-**Tier 1 foundation:** [zGameLib docs](https://github.com/SETA1609/zGameLib/tree/main/docs) (reference + theory 01–07).
+**Tier 1 foundation:** [zGameLib docs](https://github.com/SETA1609/zGameLib/tree/main/docs) (reference + theory 01–07) · [zGameLib ROADMAP](../zGameLib/docs/ROADMAP.md) (July 2026 phases).
 
 **Tier 3 editor:** Link-editor (detachable; consumes `EditorHost` from Nexus Engine).
 *Crucible* is an alias.
