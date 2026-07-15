@@ -71,6 +71,9 @@ Optional background: [00b](00-legacy-node-scene-architecture.md) — Redot legac
 | 07 | [`07-localization-system.md`](07-localization-system.md) | `LocalizationSystem`; PO→JSON in `build.zig` |
 | 08 | [`08-hot-reload-nexus-engine.md`](08-hot-reload-nexus-engine.md) | Engine-level hot reload (resources, scenes, locale) |
 | 09 | [`09-hot-reload-crucible.md`](09-hot-reload-crucible.md) | Editor-driven hot reload (file watcher, play-in-editor) |
+| 10 | [`10-hazel-hazelnut-split.md`](10-hazel-hazelnut-split.md) | Hazel/Hazelnut split — lessons for our architecture |
+| 11 | [`11-networking-decision.md`](11-networking-decision.md) | Networking decision — GNS vs ENet, full commitment to Valve GameNetworkingSockets |
+| 12 | [`12-web-backend-strategy.md`](12-web-backend-strategy.md) | Web backend strategy — WebGPU for WASM (Tier 2 view) |
 
 **API reference:** [`../Nexus_Reference.md`](../Nexus_Reference.md)  
 **Examples:** [`../examples/ladder.md`](../examples/ladder.md)  
