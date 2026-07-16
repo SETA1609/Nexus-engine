@@ -1,9 +1,3 @@
-//! Build for Nexus-engine — a Tier 2 engine consuming zGameLib (Tier 1).
-//!
-//! The engine module imports `zgame` from the framework dependency; the
-//! executable links the platform + vulkan_stack + zclip artifacts that
-//! `zgame` pulls in. Add engine-native C/C++ sources as needed below.
-
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
@@ -29,6 +23,24 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(exe);
 
+    // ============================================================
+    // Named DAG steps for pipeline visibility.
+    // The module → dependency edges already form the internal DAG;
+    // these steps make it visible in `--summary all`.
+    // ============================================================
+    const engine_step = b.step("build-engine",
+        "Build Nexus-engine binary");
+    engine_step.dependOn(&exe.step);
+
+    const pipeline_step = b.step("pipeline",
+        "Full pipeline: zGameLib → Nexus-engine");
+    pipeline_step.dependOn(engine_step);
+
+    b.default_step = pipeline_step;
+
+    // ============================================================
+    // Run
+    // ============================================================
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
 
