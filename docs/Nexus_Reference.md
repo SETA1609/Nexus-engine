@@ -746,3 +746,44 @@ Details:
 - [`theory/08-hot-reload-nexus-engine.md`](theory/08-hot-reload-nexus-engine.md) — engine reload internals
 - [`theory/09-hot-reload-crucible.md`](theory/09-hot-reload-crucible.md) — editor-driven reload
 - `libs/zGameLib/docs/theory/08-hot-reload.md` — Tier 1 primitives
+
+---
+
+## 16. WASM Modding
+
+Nexus uses **WebAssembly** for modding and scripting, with **Crucible** abstracting the compilation pipeline so modders never need to touch WASM toolchains directly.
+
+### Tier split
+
+| Tier | Owns | Details |
+|------|------|---------|
+| **Nexus Engine** | `WasmHost`, `ModManager`, sandboxed execution | Loads `.wasm` modules, exposes Mod API via imports |
+| **Crucible** | Mod project templates, build orchestration, hot reload UI | Editor hides all WASM compilation complexity |
+
+### WASM host
+
+Mods run in a sandboxed WASM environment. The host exposes a curated Mod API — mods can only call what Nexus explicitly imports:
+
+```zig
+const WasmHost = struct {
+    engine: *NexusEngine,
+    pub fn loadMod(self: *WasmHost, path: []const u8) !*ModInstance { … }
+    pub fn unloadMod(self: *WasmHost, id: []const u8) void { … }
+    pub fn reloadMod(self: *WasmHost, id: []const u8) !void { … }
+};
+```
+
+### Mod package
+
+```
+mods/<name>/
+├── mod.json      # metadata, dependencies, entry point
+├── mod.wasm      # compiled logic (optional — data-only mods skip it)
+└── data/         # resource overrides, JSON/YAML configs
+```
+
+### Editor abstraction
+
+Crucible provides templates (Zig/Rust), a "Build Mod" button, and hot reload integration — detailed in [`theory/13-wasm-modding.md`](theory/13-wasm-modding.md).
+
+See also: [`theory/12-web-backend-strategy.md`](theory/12-web-backend-strategy.md) (WASM for Web target).

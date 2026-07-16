@@ -51,8 +51,10 @@ Read theory chapters as the matching **version** lands (see [`../ROADMAP.md`](..
 | 1.2.0 | i18n | [07](07-localization-system.md) (`LocalizationSystem`, `build.zig` pipeline) |
 | 0.9.0 | `physics-ball` + resource reload | [08](08-hot-reload-nexus-engine.md) (resource hot reload) |
 | 1.1.0+ | Crucible | [09](09-hot-reload-crucible.md) (editor-driven hot reload) |
+| 1.1.0+ | Crucible mod UI | [13](13-wasm-modding.md) (WASM modding; editor abstraction layer) |
 
 Optional background: [00b](00-legacy-node-scene-architecture.md) — Redot legacy tree (clean-room reference).
+[13](13-wasm-modding.md) — WASM modding (stretch — post-1.0 context).
 
 ---
 
@@ -74,6 +76,7 @@ Optional background: [00b](00-legacy-node-scene-architecture.md) — Redot legac
 | 10 | [`10-hazel-hazelnut-split.md`](10-hazel-hazelnut-split.md) | Hazel/Hazelnut split — lessons for our architecture |
 | 11 | [`11-networking-decision.md`](11-networking-decision.md) | Networking decision — GNS vs ENet, full commitment to Valve GameNetworkingSockets |
 | 12 | [`12-web-backend-strategy.md`](12-web-backend-strategy.md) | Web backend strategy — WebGPU for WASM (Tier 2 view) |
+| 13 | [`13-wasm-modding.md`](13-wasm-modding.md) | WASM modding with editor-abstraction layer (Tier 2 runtime + Tier 3 tooling) |
 
 **API reference:** [`../Nexus_Reference.md`](../Nexus_Reference.md)  
 **Examples:** [`../examples/ladder.md`](../examples/ladder.md)  
