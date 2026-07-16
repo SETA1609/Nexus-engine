@@ -35,6 +35,7 @@ pub fn build(b: *std.Build) void {
     const pipeline_step = b.step("pipeline",
         "Full pipeline: zGameLib → Nexus-engine");
     pipeline_step.dependOn(engine_step);
+    pipeline_step.dependOn(b.getInstallStep());
 
     b.default_step = pipeline_step;
 
