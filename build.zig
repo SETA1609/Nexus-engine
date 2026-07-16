@@ -16,39 +16,62 @@ pub fn build(b: *std.Build) void {
     });
     nexus_mod.addImport("zgame", zgame_dep.module("zgame"));
 
-    const exe = b.addExecutable(.{
+    // ============================================================
+    // PRIMARY: Static library (Cherno model — engine as library)
+    //   - Consumed by editor, games, and runtimes
+    //   - Installed to engine/build/lib/nexus-engine.a/.lib
+    // ============================================================
+    const nexus_lib = b.addLibrary(.{
+        .linkage = .static,
         .name = "nexus-engine",
         .root_module = nexus_mod,
     });
-
-    b.installArtifact(exe);
+    b.installArtifact(nexus_lib);
 
     // ============================================================
-    // Named DAG steps for pipeline visibility.
-    // The module → dependency edges already form the internal DAG;
-    // these steps make it visible in `--summary all`.
+    // SECONDARY: Runtime executable for standalone testing
+    //   - Thin entry point wrapping the same module
+    //   - Installed to engine/build/bin/nexus-runtime
     // ============================================================
+    const runtime_exe = b.addExecutable(.{
+        .name = "nexus-runtime",
+        .root_module = nexus_mod,
+    });
+    b.installArtifact(runtime_exe);
+
+    // ============================================================
+    // Named DAG steps for pipeline visibility
+    // ============================================================
+    const lib_step = b.step("build-lib",
+        "Build Nexus static library (primary artifact)");
+    lib_step.dependOn(&nexus_lib.step);
+
+    const runtime_step = b.step("build-runtime",
+        "Build Nexus runtime executable (standalone testing)");
+    runtime_step.dependOn(&runtime_exe.step);
+
     const engine_step = b.step("build-engine",
-        "Build Nexus-engine binary");
-    engine_step.dependOn(&exe.step);
+        "Build all engine artifacts (static lib + runtime exe)");
+    engine_step.dependOn(lib_step);
+    engine_step.dependOn(runtime_step);
 
     const pipeline_step = b.step("pipeline",
-        "Full pipeline: zGameLib → Nexus-engine");
+        "Full pipeline: zGameLib → Nexus static lib + runtime exe");
     pipeline_step.dependOn(engine_step);
     pipeline_step.dependOn(b.getInstallStep());
 
     b.default_step = pipeline_step;
 
     // ============================================================
-    // Run
+    // Run (standalone testing)
     // ============================================================
-    const run_cmd = b.addRunArtifact(exe);
+    const run_cmd = b.addRunArtifact(runtime_exe);
     run_cmd.step.dependOn(b.getInstallStep());
 
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
 
-    const run_step = b.step("run", "Run the Nexus engine");
+    const run_step = b.step("run", "Run the Nexus runtime (standalone testing)");
     run_step.dependOn(&run_cmd.step);
 }
