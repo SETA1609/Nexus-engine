@@ -1,3 +1,4 @@
 [submodule "libs/zGameLib"]
 	path = libs/zGameLib
 	url = git@github.com:SETA1609/zGameLib.git
+	branch = feat/engine-docs-ref
