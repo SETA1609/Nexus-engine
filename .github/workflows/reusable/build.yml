@@ -1,0 +1,35 @@
+name: Reusable Build (Nexus-engine)
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        description: 'zig build step'
+        required: false
+        default: 'pipeline'
+        type: string
+      os:
+        description: 'OS runner'
+        required: false
+        default: 'ubuntu-latest'
+        type: string
+
+jobs:
+  build:
+    name: ${{ inputs.target }} · ${{ inputs.os }}
+    runs-on: ${{ inputs.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+          use-cache: true
+
+      - run: zig version
+
+      - name: Build
+        run: zig build ${{ inputs.target }}

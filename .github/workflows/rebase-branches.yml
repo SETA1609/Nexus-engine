@@ -1,0 +1,19 @@
+name: Rebase branches
+
+on:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: write
+
+jobs:
+  rebase:
+    name: Rebase all branches onto ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rebase branches
+        run: bash scripts/rebase-branches.sh ${{ github.ref_name }}

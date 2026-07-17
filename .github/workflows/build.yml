@@ -1,4 +1,4 @@
-name: build
+name: CI
 
 on:
   push:
@@ -6,29 +6,25 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
+  lint-workflows:
+    name: lint workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate workflow YAML
+        run: python3 scripts/validate-workflows.py
+
   build:
     name: ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    # macOS in scope (Redot-informed zGameLib path): CI = VM build pipeline.
-    # Windowed `zig build run` on Mac — contributor-verified on real hardware.
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Zig
-        uses: mlugg/setup-zig@v2
-        with:
-          version: 0.16.0
-
-      - name: zig version
-        run: zig version
-
-      - name: Build
-        run: zig build
-
-      - name: Run
-        run: zig build run
+    uses: ./.github/workflows/reusable/build.yml
+    with:
+      target: pipeline
+      os: ${{ matrix.os }}

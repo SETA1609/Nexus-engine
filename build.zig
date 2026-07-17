@@ -15,6 +15,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     nexus_mod.addImport("zgame", zgame_dep.module("zgame"));
+    nexus_mod.addImport("engine_interface", b.createModule(.{
+        .root_source_file = b.path("../contract/engine_interface.zig"),
+        .target = target,
+        .optimize = optimize,
+    }));
 
     // ============================================================
     // PATH 1 — Static library (Cherno: Hazel core engine)
