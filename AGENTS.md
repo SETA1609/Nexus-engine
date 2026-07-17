@@ -51,3 +51,4 @@ None exist. No `zig build test` step. Add tests via `b.addTest(...)` in `build.z
 
 Reusable workflow: `.github/workflows/reusable/build.yml`.
 Main CI: `.github/workflows/build.yml` — cross-platform pipeline build via reusable workflow.
+Auto-rebase: `.github/workflows/rebase-branches.yml` — on push to main, rebases all branches onto it (skips conflicts, logs failures).
