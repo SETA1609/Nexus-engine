@@ -32,6 +32,7 @@ git submodule update --init --recursive
 ## Architecture
 
 - **Tier 2: Nexus Engine** (alias: *Forge*). **Tier 3: Link-editor** (alias: *Crucible*). Tier 2 consumes zGameLib (Tier 1). Single executable, no library output.
+- **EngineInterface contract** defined in `contract/engine_interface.zig` (root bundle). Nexus implements it via `createEngineInterface()` in `src/root.zig`. The editor consumes the interface instead of importing Nexus modules directly.
 - Docs: `docs/Nexus_Reference.md`, `docs/theory/` (01–05), `docs/file-tree.yml`, `docs/dependencies.yml` (zGameLib — `../zGameLib/docs/{file-tree,dependencies}.yml`).
 - Entrypoint: `src/root.zig` — exports `NexusApp` for consumers; runtime entry in `src/runtime/main.zig`.
 - All zGameLib APIs reachable: `zgame.platform`, `zgame.vk`, `zgame.Gpu`, `zgame.FrameRing`, etc.
