@@ -29,6 +29,11 @@ After cloning this repo, initialize submodules:
 git submodule update --init --recursive
 ```
 
+## Architecture decisions
+
+Locked-in decisions at [`docs/architecture-decisions.md`](docs/architecture-decisions.md):
+static lib host + dynamic game logic, script encapsulation for CI.
+
 ## Architecture
 
 - **Tier 2: Nexus Engine** (alias: *Forge*). **Tier 3: Link-editor** (alias: *Crucible*). Tier 2 consumes zGameLib (Tier 1). Single executable, no library output.
